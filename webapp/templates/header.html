@@ -1,0 +1,47 @@
+{% load static %}
+<!-- Navbar -->
+<nav class="main-header navbar navbar-expand-md navbar-light navbar-white">
+    <div class="container">
+        <a href="#" class="navbar-brand">
+            <img src="{% static 'img/logo.png' %}" alt="AdminLTE Logo"
+                 class="brand-image"
+                 style="opacity: .8">
+            <span class="brand-text font-weight-light">Servimotos</span>
+        </a>
+        <button class="navbar-toggler order-1" type="button" data-toggle="collapse" data-target="#navbarCollapse"
+                aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse order-3" id="navbarCollapse">
+            <ul class="navbar-nav">
+                <li class="nav-item dropdown">
+                    <a id="dropdownSubMenu1" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                       class="nav-link dropdown-toggle"><i class="fas fa-folder-open"></i> Funciones</a>
+                    <ul aria-labelledby="dropdownSubMenu1" class="dropdown-menu border-0 shadow">
+                        <li><a href="{% url 'lista_categoria' %}" class="dropdown-item"><i class="fas fa-truck-loading"></i> Categorías</a></li>
+                        <li><a href="{% url 'lista_marca' %}" class="dropdown-item"><i class="fa fa-fighter-jet"></i></i> Marcas</a></li>
+                        <li><a href="{% url 'lista_distribuidor' %}" class="dropdown-item"><i class="fa fa-fighter-jet"></i></i> Distribuidores</a></li>
+                        <li><a href="{% url 'lista_articulo' %}" class="dropdown-item"><i class="fas fa-boxes"></i> Productos</a></li>
+                        <li><a href="{% url 'lista_venta' %}" class="dropdown-item"><i class="fas fa-shopping-cart"></i> Ventas</a></li>
+                        <li><a href="{% url 'lista_compra' %}" class="dropdown-item"><i class="fas fa-shopping-bag"></i> Compras</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
+                    <a id="dropdownSubMenu2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                       class="nav-link dropdown-toggle"><i class="fas fa-folder-open"></i> Reportes</a>
+                    <ul aria-labelledby="dropdownSubMenu1" class="dropdown-menu border-0 shadow">
+                        <li><a href="{% url 'venta_report' %}" class="dropdown-item"><i class="fas fa-shopping-cart"></i> Ventas</a></li>
+                        <li><a href="{% url 'compra_report' %}" class="dropdown-item"><i class="fas fa-shopping-bag"></i> Compras</a></li>
+                    </ul>
+                </li>
+            </ul>
+            <ul class="order-1 order-md-3 navbar-nav navbar-no-expand ml-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'logout' %}">
+                    <i class="fas fa-power-off" aria-hidden="true"></i>
+                </a>
+            </li>
+        </ul>
+        </div>
+    </div>
+</nav>

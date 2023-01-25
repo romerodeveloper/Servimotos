@@ -1,0 +1,14 @@
+{% extends 'form.html' %}
+
+{% block name %}
+
+$(function () {
+    $('.form-group')
+        .on('change', 'input[name="nombre"]', function () {
+            var cont = $('input[name="nombre"]').val()
+            $('input[name="nombre"]').val(cont.toUpperCase())
+        });
+
+});
+
+{% endblock %}
