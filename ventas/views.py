@@ -246,7 +246,7 @@ class VentaInvoicePdfView(View):
             template = get_template('invoice.html')
             context = {
                 'venta': Venta.objects.get(pk=self.kwargs['pk']),
-                'comp': {'nombre': 'SERVIMOTOS DEL CAMINO S.A.', 'runt': '80731044', 'direccion': 'Av. Boyaca # 51b - 39 SUR BOGOTA, COLOMBIA', 'correo': 'servimotos_del_camino@gmail.com', 'celular': '3112932799'},
+                'comp': {'nombre': 'SERVIMOTOS DEL CAMINO S.A.', 'RUT': '80731044', 'direccion': 'Av. Boyaca # 51b - 39 SUR BOGOTA, COLOMBIA', 'correo': 'servimotos_del_camino@gmail.com', 'celular': '3112932799'},
                 'icon': '{}{}'.format(settings.MEDIA_URL, 'logo.png')
             }
             html = template.render(context)
