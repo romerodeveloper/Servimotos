@@ -3,6 +3,8 @@ from django.db import models
 # Create your models here.
 from categorias.models import Categoria
 from django.forms import model_to_dict
+
+from distribuidores.models import Distribuidor
 from marcas.models import Marca
 
 
@@ -15,7 +17,7 @@ class Articulo(models.Model):
     stock = models.IntegerField(verbose_name='Cantidad Unidades')
     categoria = models.ForeignKey(Categoria, on_delete=models.SET_NULL, null=True, verbose_name='Categoria')
     marca = models.ForeignKey(Marca, on_delete=models.SET_NULL, null=True, verbose_name='Marca')
-
+    distribuidor = models.ForeignKey(Distribuidor, on_delete=models.CASCADE)
 
     def __str__(self):
         return f'Articulo {self.id}: {self.nombre} {self.precioCosto} {self.precioFinal} {self.stock} '
@@ -26,4 +28,5 @@ class Articulo(models.Model):
         item['marca'] = self.marca.toJSON()
         item['precioFinal'] = format(self.precioFinal, '.2f')
         item['iva'] = format(self.iva, '.2f')
+        item['distribuidor'] = self.distribuidor.toJSON()
         return item

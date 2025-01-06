@@ -127,6 +127,7 @@ var vents = {
     },
 };
 
+//Busqueda por producto en buscador de productos agil
 function formatRepo(repo) {
     if (repo.loading) {
         return repo.text;
@@ -139,16 +140,13 @@ function formatRepo(repo) {
     var option = $(
         '<div class="wrapper container">' +
         '<div class="row">' +
-        '<div class="col-lg-1">' +
-        '<img src="' + repo.image + '" class="img-fluid img-thumbnail d-block mx-auto rounded">' +
-        '</div>' +
         '<div class="col-lg-11 text-left shadow-sm">' +
         //'<br>' +
         '<p style="margin-bottom: 0;">' +
         '<b>Nombre:</b> ' + repo.nombre + '<br>' +
+        '<b>Categoria:</b> ' + repo.categoria.nombre + '<br>' +
         '<b>Marca:</b> ' + repo.marca.nombre + '<br>' +
-        '<b>Cantidad:</b> ' + repo.stock + '<br>' +
-        '<b>Precio Publico:</b> <span class="badge badge-warning">$' + repo.precioFinal + '</span>' +
+        '<b>Precio:</b> <span class="badge badge-warning">$' + repo.precioFinal + '</span>' +
         '</p>' +
         '</div>' +
         '</div>' +
@@ -199,10 +197,31 @@ $(function () {
             console.clear();
             var cant = parseInt($(this).val());
             var tr = tblProducts.cell($(this).closest('td, li')).index();
-            console.log(cant, tr)
-            vents.items.products[tr.row].cant = cant;
-            vents.calculate_invoice();
-            $('td:eq(5)', tblProducts.row(tr.row).node()).html('$' + vents.items.products[tr.row].subtotal.toFixed(2));
+            var productoId = vents.items.products[tr.row].id;
+            var input = $(this);
+            // Consulta al backend
+            $.ajax({
+                url: window.location.pathname,  // Endpoint en Django
+                type: 'POST',
+                data: {
+                    action: 'check_stock',
+                    id: productoId,
+                    cantidad: cant
+                },
+                success: function (response) {
+                    if (response.status === 'ok') {
+                        vents.items.products[tr.row].cant = cant;
+                        vents.calculate_invoice();
+                        $('td:eq(5)', tblProducts.row(tr.row).node()).html('$' + vents.items.products[tr.row].subtotal.toFixed(2));
+                    } else {
+                        alert(response.message);
+                        input.val(vents.items.products[tr.row].cant).trigger('change');
+                    }
+                },
+                error: function () {
+                    alert('Error al consultar el stock. Intente nuevamente.');
+                }
+            });
         });
     $('.form-group')
         .on('change', 'input[name="descuento"]', function () {
@@ -326,11 +345,10 @@ $(function () {
             type: 'POST',
             url: window.location.pathname,
             data: function (params) {
-                var queryParameters = {
+                return {
+                    action: 'search_autocomplete',
                     term: params.term,
-                    action: 'search_autocomplete'
-                }
-                return queryParameters;
+                };
             },
             processResults: function (data) {
                 return {
@@ -338,9 +356,12 @@ $(function () {
                 };
             },
         },
-        placeholder: 'Ingrese una descripción',
+        placeholder: 'Ingrese nombre de producto separado con (,) ingrese la categoria',
         minimumInputLength: 1,
         templateResult: formatRepo,
+        templateSelection: function (repo) {
+            return repo.text;
+        }
     }).on('select2:select', function (e) {
         var data = e.params.data;
         if(!Number.isInteger(data.id)){

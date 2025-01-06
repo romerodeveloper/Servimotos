@@ -1,6 +1,7 @@
 import logging
 import json
 import os
+from operator import truediv
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.mail.backends import console
@@ -73,6 +74,7 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
         data = {}
         try:
             action = request.POST['action']
+            # Busqueda detallada
             if action == 'search_products':
                 data = []
                 termino = request.POST['term']
@@ -81,15 +83,27 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
                     item = i.toJSON()
                     item['value'] = i.nombre
                     data.append(item)
+            #Busqueda agil
             elif action == 'search_autocomplete':
                 data = []
                 term = request.POST['term'].strip()
-                data.append({'id': term, 'text': term})
-                products = Articulo.objects.filter(nombre__icontains=term, stock__gt=0)
+
+                parts = term.split(',')
+                nombre = parts[0].strip() if len(parts) > 0 else ""
+                categoria = parts[1].strip() if len(parts) > 1 else ""
+
+                products = Articulo.objects.filter(stock__gt=0)
+
+                if nombre:
+                    products = products.filter(nombre__icontains=nombre)
+                if categoria:
+                    products = products.filter(categoria__nombre__icontains=categoria)
+
                 for i in products[0:10]:
                     item = i.toJSON()
-                    item['text'] = i.nombre
+                    item['text'] = f"{i.nombre}, {i.categoria.nombre}"
                     data.append(item)
+
             elif action == 'add':
                 with transaction.atomic():
                     vents = json.loads(request.POST['vents'])
@@ -112,11 +126,26 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
                         det.save()
                         det.articulo.stock -= det.cantidad
                         det.articulo.save()
+            elif action == 'check_stock':
+                # Validar stock
+                producto_id = request.POST.get('id')
+                cantidad = int(request.POST.get('cantidad', 0))
+                producto = Articulo.objects.get(pk=producto_id)
+                if producto.stock >= cantidad:
+                    data['status'] = 'ok'
+                else:
+                    data['status'] = 'error'
+                    data['message'] = f'Solo quedan {producto.stock} unidades disponibles de {producto.nombre}'
+
             else:
                 data['error'] = 'No ha ingresado a ninguna opción'
+        except Articulo.DoesNotExist:
+            data['error'] = 'El producto no existe.'
         except Exception as e:
             data['error'] = str(e)
+
         return JsonResponse(data, safe=False)
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

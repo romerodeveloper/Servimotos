@@ -1,5 +1,4 @@
-from django.forms import ModelForm, TextInput, Textarea
-
+from django.forms import ModelForm, TextInput, Textarea, HiddenInput
 
 from distribuidores.models import Distribuidor
 
@@ -13,30 +12,28 @@ class DistribuidorForm(ModelForm):
 
     class Meta:
         model = Distribuidor
+        exclude = ['totalCompras']
         fields = '__all__'
         widgets = {
             'razonSocial': TextInput(
-                attrs={
-                    'class': 'form-control',
-                    'placeholder': 'Ingrese nombre del distribuidor',
-                }
-            ),
-            'nit': TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Nit sin guión',
-            }),
-            'telefono': TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Celular o Fijo',
-            }),'correo': TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Correo electronico',
-            }),
-            'descripcion': Textarea(attrs={
-                'class': 'form-control',
-                "rows": 3, "cols": 12,
-                'placeholder': 'Descripcion de los productos que abastece',
-            }),
-
+            attrs={
+                'placeholder': 'Ingrese nombre del distribuidor',
+            }
+        ),
+        'nit': TextInput(attrs={
+            'placeholder': 'Nit sin guión',
+        }),
+        'telefonoPrincipal': TextInput(attrs={
+            'placeholder': 'Celular o Fijo',
+        }),
+        'telefonoAsesor': TextInput(attrs={
+            'placeholder': 'Celular o Fijo',
+        }),
+        'correo': TextInput(attrs={
+            'placeholder': 'Correo electrónico',
+        }),
+        'nombreRepresentante': TextInput(attrs={
+            'placeholder': 'Nombre de representate o Asesor',
+        })
         }
 

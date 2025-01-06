@@ -48,6 +48,10 @@ INSTALLED_APPS = [
     'distribuidores',
     'reports',
     'reports_dos',
+    'empresa',
+    'sociosMinoristas',
+    'sedes',
+    'compañias'
 
 ]
 
@@ -94,7 +98,7 @@ WSGI_APPLICATION = 'servimotos.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'servimotos_db',
+        'NAME': 'inventario_core',
         'USER': 'postgres',
         'PASSWORD': 'admin',
         'HOST': 'localhost',
@@ -137,7 +141,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = 'static/'
+
 #Para definir donde guardar los archivos estaticos
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR,"static"),

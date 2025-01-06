@@ -2,32 +2,64 @@
 
 {% block columns %}
     <tr>
-        <th scope="col" style="width: 10%">Id</th>
-        <th scope="col" style="width: 10%">Razon Social</th>
-        <th scope="col" style="width: 10%">Nit</th>
-        <th scope="col" style="width: 10%">Telefono</th>
-        <th scope="col" style="width: 20%">Correo</th>
-        <th scope="col" style="width: 30%">Descripción</th>
+        <th scope="col" style="width: 40%">Razon Social</th>
+        <th scope="col" style="width: 30%">Telefono Asesor</th>
+        <th scope="col" style="width: 20%">Ver Más</th>
     </tr>
 {% endblock %}
 
 {% block rows %}
     {% for c in object_list %}
         <tr>
-            <td>{{ c.id }}</td>
             <td>{{ c.razonSocial }}</td>
-            <td>{{ c.nit }}</td>
-            <td>{{ c.telefono }}</td>
-            <td>{{ c.correo }}</td>
-            <td>{{ c.descripcion }}</td>
+            <td>{{ c.telefonoAsesor }}</td>
             <td>
-                <a href="{% url 'actualizar_distribuidor' c.id %}" class="btn btn-warning btn-xs btn-flat">
-                    <i class="fas fa-edit"></i>
-                </a>
-                <a href="{% url 'eliminar_distribuidor' c.id %}" class="btn btn-danger btn-xs btn-flat">
-                    <i class="fas fa-trash-alt"></i>
-                </a>
+                <!-- Botón para abrir el modal -->
+                <button type="button" class="btn btn-info btn-xs btn-flat" data-toggle="modal" data-target="#modal{{ c.id }}">
+                    Ver Más
+                </button>
             </td>
         </tr>
+
+        <!-- Modal para mostrar todos los datos del distribuidor -->
+        <div class="modal fade" id="modal{{ c.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ c.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header bg-info text-white">
+                        <h5 class="modal-title" id="modalLabel{{ c.id }}"><i class="fas fa-building"></i> Perfil del Distribuidor</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h4><i class="fas fa-info-circle"></i> Información Básica</h4>
+                                <p><strong>Razón Social:</strong> {{ c.razonSocial }}</p>
+                                <p><strong>Nit:</strong> {{ c.nit }}</p>
+                                <p><strong>Teléfono:</strong> {{ c.telefonoPrincipal }}</p>
+                                <p><strong>Correo:</strong> {{ c.correo }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h4><i class="fas fa-users"></i> Contacto</h4>
+                                <p><strong>Nombre del Representante:</strong> {{ c.nombreRepresentante }}</p>
+                                <p><strong>Teléfono Asesor:</strong> {{ c.telefonoAsesor }}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h4><i class="fas fa-file-alt"></i> Estadisticas</h4>
+                                <p><strong>Modelo de factura (IVA):</strong> {{ c.modeloFactura }}</p>
+                                <p><strong>Valor total de compras realizadas:</strong> {{ c.totalCompras }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times-circle"></i> Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     {% endfor %}
 {% endblock %}

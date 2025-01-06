@@ -362,7 +362,7 @@ $(function () {
                 };
             },
         },
-        placeholder: 'Ingrese una descripción',
+        placeholder: 'El producto a registrar debe estar previamente creado con distribuidor asociado',
         minimumInputLength: 1,
         templateResult: formatRepo,
     }).on('select2:select', function (e) {
