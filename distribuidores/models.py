@@ -1,8 +1,4 @@
 from django.db import models
-
-# Create your models here.
-from django.forms import model_to_dict
-
 from empresa.models import Empresa
 
 
@@ -18,6 +14,12 @@ class Distribuidor(Empresa):
         verbose_name='Modelo de Factura',
         choices=ModeloFacturaChoices.choices,
         default=ModeloFacturaChoices.IVA_NO_CALCULADO,
+    )
+    compañiaAsociada = models.ForeignKey(
+        'compañias.Compañia',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
     )
 
     def toJSON(self):

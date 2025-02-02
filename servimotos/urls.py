@@ -18,7 +18,9 @@ from django.urls import path
 
 from categorias.views import CategoriaListView, CategoriaCreateView, CategoriaUpdateView, CategoriaDeleteView
 from articulos.views import ArticuloListView, ArticuloCreateView, ArticuloUpdateView, ArticuloDeleteView
+from compañias.views import CompañiaListView, CompañiaCreateView, CompañiaUpdateView, CompañiaDeleteView
 from login.views import LoginFormView, LogoutView
+from sociosMinoristas.views import SocioListView, SocioCreateView, SocioUpdateView, SocioDeleteView
 from ventas.views import VentaCreateView, VentaListView, VentaDeleteView, VentaUpdateView, VentaInvoicePdfView
 from marcas.views import MarcaListView, MarcaCreateView, MarcaUpdateView, MarcaDeleteView
 from compras.views import CompraCreateView, CompraListView, CompraDeleteView, CompraUpdateView
@@ -28,6 +30,9 @@ from reports_dos.views import ReportCompraView
 from distribuidores.views import DistribuidorListView, DistribuidorCreateView, DistribuidorUpdateView, \
     DistribuidorDeleteView
 from webapp.views import IndexView
+
+
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -52,6 +57,16 @@ urlpatterns = [
     path('distribuidor/add/', DistribuidorCreateView.as_view(), name='agregar_distribuidor'),
     path('distribuidor/edit/<int:pk>/', DistribuidorUpdateView.as_view(), name='actualizar_distribuidor'),
     path('distribuidor/delete/<int:pk>/', DistribuidorDeleteView.as_view(), name='eliminar_distribuidor'),
+    # URL DE SOCIOS MINORISTAS
+    path('socio/list/', SocioListView.as_view(), name='lista_socios'),
+    path('socio/add/', SocioCreateView.as_view(), name='agregar_socio'),
+    path('socio/edit/<int:pk>/', SocioUpdateView.as_view(), name='actualizar_socio'),
+    path('socio/delete/<int:pk>/', SocioDeleteView.as_view(), name='eliminar_socio'),
+    # URL DE SOCIOS MINORISTAS
+    path('compañia/list/', CompañiaListView.as_view(), name='lista_compañia'),
+    path('compañia/add/', CompañiaCreateView.as_view(), name='agregar_compañia'),
+    path('compañia/edit/<int:pk>/', CompañiaUpdateView.as_view(), name='actualizar_compañia'),
+    path('compañia/delete/<int:pk>/', CompañiaDeleteView.as_view(), name='eliminar_compañia'),
     #URL DE LOGIN
     path('login/', LoginFormView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),

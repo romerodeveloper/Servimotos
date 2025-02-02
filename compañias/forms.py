@@ -1,15 +1,10 @@
-from django.forms import ModelForm, TextInput, Textarea, HiddenInput
-
-from distribuidores.models import Distribuidor
-
-from django import forms
 from django.forms import ModelForm, TextInput
-from .models import Distribuidor
+from .models import Compañia
 
 
-class DistribuidorForm(ModelForm):
+class CompañiaForm(ModelForm):
     class Meta:
-        model = Distribuidor
+        model = Compañia
         exclude = ['totalCompras']
         widgets = {
             'razonSocial': TextInput(attrs={
