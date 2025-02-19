@@ -1,0 +1,48 @@
+{% extends 'body.html' %}
+{% load static %}
+{% block head_css %}
+    <link rel="stylesheet" type="text/css" href="{% static 'assets/css/createFormDistribuidor.css' %}">
+{% endblock %}
+{% block content %}
+<form method="POST" action=".">
+    {% csrf_token %}
+    <div class="form-row">
+        <div class="form-group">
+            {{ form.direccion.label }}
+            {{ form.direccion }}
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Enviar</button>
+</form>
+<script>
+    {% if form.errors %}
+        var errors = '';
+        {% for field in form %}
+            {% if field.errors %}
+                errors += '{{ field.label }}: ';
+                {% for error in field.errors %}
+                    errors += '{{ error }}\n';
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
+        Swal.fire({
+            title: 'Error!',
+            text: errors,
+            icon: 'error'
+        });
+    {% else %}
+        $('form').on('submit', function(e) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Enviado!',
+                text: 'Validando Campos.',
+                icon: 'success'
+            }).then(function() {
+                $('form').off('submit').submit();
+            });
+        });
+    {% endif %}
+</script>
+
+
+{% endblock %}}

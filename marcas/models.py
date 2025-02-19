@@ -7,6 +7,12 @@ from django.forms import model_to_dict
 
 class Marca(models.Model):
     nombre = models.CharField(max_length=255)
+    compañiaAsociada = models.ForeignKey(
+        'compañias.Compañia',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
 
     def toJSON(self):
         item = model_to_dict(self)

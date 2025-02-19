@@ -12,6 +12,12 @@ class MarcaListView(LoginRequiredMixin, ListView):
     model = Marca
     template_name = 'listMarca.html'
 
+    def get_queryset(self):
+        usuario = self.request.user
+        compania_id = usuario.sedePerteneciente.companiaPerteneciente.id
+        self.marcas = Marca.objects.filter(compañiaAsociada=compania_id)
+        return self.marcas
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Listado de Marcas'
@@ -25,6 +31,12 @@ class MarcaCreateView(LoginRequiredMixin, CreateView):
     form_class = MarcaForm
     template_name = 'createMarca.html'
     success_url = reverse_lazy('lista_marca')
+
+    def form_valid(self, form):
+        usuario = self.request.user
+        compania_id = usuario.sedePerteneciente.companiaPerteneciente.id
+        form.instance.compañiaAsociada_id = compania_id
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

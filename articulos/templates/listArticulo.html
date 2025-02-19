@@ -1,44 +1,127 @@
 {% extends 'list_general.html' %}
 
 {% block columns %}
-    <tr>
-        <th scope="col" style="width: 10%">Id</th>
-        <th scope="col" style="width: 10%">Referencia</th>
-        <th scope="col" style="width: 10%">Precio Distribuidor</th>
-        <th scope="col" style="width: 10%">Iva</th>
-        <th scope="col" style="width: 10%">Porcentaje de Ganancia</th>
-        <th scope="col" style="width: 10%">Precio Publico</th>
-        <th scope="col" style="width: 10%">Unidades en Stock</th>
-        <th scope="col" style="width: 10%">Categoria</th>
-        <th scope="col" style="width: 10%">Marca</th>
-        <th scope="col" style="width: 10%">Funciones</th>
-    </tr>
+<tr>
+    <th scope="col" style="width: 10%">Id</th>
+    <th scope="col" style="width: 15%">Referencia</th>
+    <th scope="col" style="width: 15%">Precio Público</th>
+    <th scope="col" style="width: 10%">Funciones</th>
+</tr>
 {% endblock %}
 
 {% block rows %}
-    {% for c in object_list %}
-        <tr>
-            <td>{{ c.id }}</td>
-            <td>{{ c.nombre }}</td>
-            <td>{{ c.precioCosto }}</td>
-            <td>{{ c.iva }}</td>
-            <td>{{ c.tasaGanacia }}</td>
-            <td>{{ c.precioFinal }}</td>
-            {% if c.stock > 5 %}
-                <td><span class="badge badge-success">{{ c.stock }}</span></td>
-            {% else %}
-                <td><span class="badge badge-danger">{{ c.stock }}</span></td>
-            {%endif%}
-            <td>{{ c.categoria }}</td>
-            <td>{{ c.marca }}</td>
-            <td>
-                <a href="{% url 'actualizar_articulo' c.id %}" class="btn btn-warning btn-xs btn-flat">
-                    <i class="fas fa-edit"></i>
-                </a>
-                <a href="{% url 'eliminar_articulo' c.id %}" class="btn btn-danger btn-xs btn-flat">
-                    <i class="fas fa-trash-alt"></i>
-                </a>
-            </td>
-        </tr>
-    {% endfor %}
+{% for c in object_list %}
+<tr>
+    <td>{{ c.id }}</td>
+    <td>{{ c.nombre }}</td>
+    <td>{{ c.precioFinal }}</td>
+    <td>
+        <!-- Botón para abrir el modal -->
+        <button type="button" class="btn btn-primary btn-xs btn-flat" data-toggle="modal"
+                data-target="#modalDetalle{{ c.id }}">
+            <i class="fas fa-eye"></i> Ver más
+        </button>
+    </td>
+</tr>
+
+<!-- Modal para mostrar detalles del artículo -->
+<div class="modal fade" id="modalDetalle{{ c.id }}" tabindex="-1" role="dialog"
+     aria-labelledby="modalDetalleLabel{{ c.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="modalDetalleLabel{{ c.id }}">Detalles del Artículo: {{ c.nombre }}</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="row">
+                    <!-- Espacio para la foto del artículo -->
+                    <div class="col-md-4 text-center">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <img src="https://via.placeholder.com/150" alt="Foto del artículo"
+                                     class="img-fluid mb-3" style="border-radius: 10px;">
+                                <p class="text-muted">Espacio para la foto del artículo.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detalles del artículo -->
+                    <div class="col-md-8">
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white">
+                                <strong>Información General</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>ID:</strong> {{ c.id }}</p>
+                                        <p><strong>Referencia:</strong> {{ c.nombre }}</p>
+                                        <p><strong>Precio Distribuidor:</strong> {{ c.precioCosto }}</p>
+                                        <p><strong>IVA:</strong> {{ c.iva }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Porcentaje de Ganancia:</strong> {{ c.tasaGanacia }}</p>
+                                        <p><strong>Precio Público:</strong> {{ c.precioFinal }}</p>
+                                        <p><strong>Unidades en Stock:</strong>
+                                            {% if c.stock > 5 %}
+                                            <span class="badge badge-success">{{ c.stock }}</span>
+                                            {% else %}
+                                            <span class="badge badge-danger">{{ c.stock }}</span>
+                                            {% endif %}
+                                        </p>
+                                        <p><strong>Categoría:</strong> {{ c.categoria }}</p>
+                                        <p><strong>Marca:</strong> {{ c.marca }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Histórico de precios -->
+                <div class="row">
+    <div class="col-md-4"></div> <!-- Espacio a la izquierda -->
+
+    <!-- Se expande el card con col-md-8 -->
+    <div class="col-md-8">
+        <div class="card mb-4 w-100" style="width: 100%;"> <!-- Otras opciones: w-75, w-50 -->
+            <div class="card-header" style="background-color: #e0e0e0;">
+                <h4><i class="fas fa-building"></i> Histórico de Precios</h4>
+            </div>
+            <div class="card-body" style="background-color: rgba(0, 0, 0, 0.05);">
+                <ul>
+                    {% for historico in c.historico_precios_set.all %}
+                    <li>{{ historico.fecha }} - Precio : {{ historico.precio_iva_incluido }}</li>
+                    {% empty %}
+                    <li class="text-muted">No hay historial de precios disponible.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+ <!-- Fin del modal-body -->
+
+            <!-- Footer del modal (posicionado correctamente) -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning"
+                        onclick="window.location.href='{% url 'actualizar_articulo' c.id %}'">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                <button type="button" class="btn btn-danger"
+                        onclick="window.location.href='{% url 'eliminar_articulo' c.id %}'">
+                    <i class="fas fa-trash-alt"></i> Eliminar
+                </button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
+
+        </div> <!-- Fin de modal-content -->
+    </div>
+</div>
+
+{% endfor %}
 {% endblock %}

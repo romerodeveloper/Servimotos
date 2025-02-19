@@ -14,4 +14,4 @@ class Compañia(Empresa):
         return item
 
     def __str__(self):
-        return self.ventasTotales
+        return self.razonSocial

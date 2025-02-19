@@ -14,6 +14,12 @@ class DistribuidorListView(LoginRequiredMixin,ListView):
     model = Distribuidor
     template_name = 'listDistribuidor.html'
 
+    def get_queryset(self):
+        usuario = self.request.user
+        compania_id = usuario.sedePerteneciente.companiaPerteneciente.id
+        self.distribuidores = Distribuidor.objects.filter(compañiaAsociada=compania_id)
+        return self.distribuidores
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Listado de Distribuidores'
@@ -22,11 +28,19 @@ class DistribuidorListView(LoginRequiredMixin,ListView):
         context['list_url'] = reverse_lazy('lista_distribuidor')
         return context
 
+
+
 class DistribuidorCreateView(LoginRequiredMixin,CreateView):
     model = Distribuidor
     form_class = DistribuidorForm
     template_name = 'createDistribuidor.html'
     success_url = reverse_lazy('lista_distribuidor')
+
+    def form_valid(self, form):
+        usuario = self.request.user
+        compania_id = usuario.sedePerteneciente.companiaPerteneciente.id
+        form.instance.compañiaAsociada_id = compania_id
+        return super().form_valid(form)
 
 
     def get_context_data(self, **kwargs):

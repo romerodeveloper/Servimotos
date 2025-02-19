@@ -1,18 +1,29 @@
 from django.forms import ModelForm, TextInput, Textarea
 
 from articulos.models import Articulo
+from categorias.models import Categoria
+from distribuidores.models import Distribuidor
+from marcas.models import Marca
 
 
 class ArticuloForm(ModelForm):
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
+        if self.user:
+            compania_id = self.user.sedePerteneciente.companiaPerteneciente.id
+            self.fields['distribuidor'].queryset = Distribuidor.objects.filter(compañiaAsociada_id=compania_id)
+            self.fields['marca'].queryset = Marca.objects.filter(compañiaAsociada_id=compania_id)
+            self.fields['categoria'].queryset = Categoria.objects.filter(compañiaAsociada_id=compania_id)
+
         for form in self.visible_fields():
             form.field.widget.attrs['class'] = 'form-control'
             form.field.widget.attrs['autocomplete'] = 'off'
 
     class Meta:
         model = Articulo
-        fields = '__all__'
+        exclude = ['sede']
         widgets = {
             'nombre': TextInput(
                 attrs={
@@ -41,6 +52,4 @@ class ArticuloForm(ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Unidades adquiridas'
             })
-
         }
-

@@ -20,6 +20,7 @@ from categorias.views import CategoriaListView, CategoriaCreateView, CategoriaUp
 from articulos.views import ArticuloListView, ArticuloCreateView, ArticuloUpdateView, ArticuloDeleteView
 from compañias.views import CompañiaListView, CompañiaCreateView, CompañiaUpdateView, CompañiaDeleteView
 from login.views import LoginFormView, LogoutView
+from sedes.views import SedeCreateView
 from sociosMinoristas.views import SocioListView, SocioCreateView, SocioUpdateView, SocioDeleteView
 from ventas.views import VentaCreateView, VentaListView, VentaDeleteView, VentaUpdateView, VentaInvoicePdfView
 from marcas.views import MarcaListView, MarcaCreateView, MarcaUpdateView, MarcaDeleteView
@@ -62,11 +63,14 @@ urlpatterns = [
     path('socio/add/', SocioCreateView.as_view(), name='agregar_socio'),
     path('socio/edit/<int:pk>/', SocioUpdateView.as_view(), name='actualizar_socio'),
     path('socio/delete/<int:pk>/', SocioDeleteView.as_view(), name='eliminar_socio'),
-    # URL DE SOCIOS MINORISTAS
+    # URL DE COMPAÑIAS
     path('compañia/list/', CompañiaListView.as_view(), name='lista_compañia'),
     path('compañia/add/', CompañiaCreateView.as_view(), name='agregar_compañia'),
     path('compañia/edit/<int:pk>/', CompañiaUpdateView.as_view(), name='actualizar_compañia'),
     path('compañia/delete/<int:pk>/', CompañiaDeleteView.as_view(), name='eliminar_compañia'),
+    # URL DE SEDES
+    #path('sede/list/', CompañiaListView.as_view(), name='lista_compañia'),
+    path('sede/add/', SedeCreateView.as_view(), name='agregar_sede'),
     #URL DE LOGIN
     path('login/', LoginFormView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),

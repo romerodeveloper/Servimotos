@@ -16,6 +16,9 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, ListView, DeleteView, UpdateView
+
+from compañias.models import Compañia
+from sedes.models import Sede
 from ventas.models import Venta, DetVenta
 from ventas.forms import VentaForm
 from articulos.models import Articulo
@@ -71,6 +74,8 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
+        usuario = self.request.user
+        sede_id = usuario.sedePerteneciente.id
         data = {}
         try:
             action = request.POST['action']
@@ -92,7 +97,7 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
                 nombre = parts[0].strip() if len(parts) > 0 else ""
                 categoria = parts[1].strip() if len(parts) > 1 else ""
 
-                products = Articulo.objects.filter(stock__gt=0)
+                products = Articulo.objects.filter(stock__gt=0, sede_id=sede_id)
 
                 if nombre:
                     products = products.filter(nombre__icontains=nombre)
@@ -116,6 +121,15 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
                     venta.iva = float(vents['iva'])
                     venta.total = float(vents['total'])
                     venta.save()
+
+                    sede_actualizada = Sede.objects.get(id=request.user.sedePerteneciente.id)
+                    sede_actualizada.ventasTotales += venta.total
+                    sede_actualizada.save()
+
+                    compania_actualizada = Compañia.objects.get(id=request.user.sedePerteneciente.companiaPerteneciente.id)
+                    compania_actualizada.ventasTotales += venta.total
+                    compania_actualizada.save()
+
                     for i in vents['products']:
                         det = DetVenta()
                         det.venta_id = venta.id

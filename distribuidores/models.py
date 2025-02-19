@@ -23,8 +23,8 @@ class Distribuidor(Empresa):
     )
 
     def toJSON(self):
-        item = super().toJSON()
-        item['totalCompras'] = format(self.totalCompras, '.2f')
+        item = super().toJSON() if hasattr(super(), 'toJSON') else {}
+        item['totalCompras'] = format(self.totalCompras if self.totalCompras is not None else 0, '.2f')
         item['modeloFactura'] = self.get_modeloFactura_display()
         return item
 

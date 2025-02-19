@@ -11,6 +11,11 @@ class SocioListView(LoginRequiredMixin,ListView):
     model = SocioMinorista
     template_name = 'listSocios.html'
 
+    def get_queryset(self):
+        usuario = self.request.user
+        compania_id = usuario.sedePerteneciente.companiaPerteneciente.id
+        return SocioMinorista.objects.filter(compañiasAsociadas__id=compania_id).distinct()
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Listado de Socios Minoristas'
@@ -24,6 +29,15 @@ class SocioCreateView(LoginRequiredMixin,CreateView):
     form_class = SocioForm
     template_name = 'createSocio.html'
     success_url = reverse_lazy('lista_socios')
+
+    def form_valid(self, form):
+        usuario = self.request.user
+        compania = usuario.sedePerteneciente.companiaPerteneciente
+        socio = form.save(commit=False)
+        socio.save()
+        form.save_m2m()
+        socio.compañiasAsociadas.add(compania)
+        return super().form_valid(form)
 
 
     def get_context_data(self, **kwargs):

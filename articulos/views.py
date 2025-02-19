@@ -1,13 +1,10 @@
-from django.contrib.auth.decorators import login_required
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.utils import timezone
 
-# Create your views here.
-from articulos.models import Articulo
+from articulos.models import Articulo, Historico_Precios
 from django.urls import reverse_lazy
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 
 from articulos.forms import ArticuloForm
@@ -17,6 +14,10 @@ class ArticuloListView(LoginRequiredMixin,ListView):
     model = Articulo
     template_name = 'listArticulo.html'
 
+    def get_queryset(self):
+        usuario = self.request.user
+        sede_id = usuario.sedePerteneciente.id
+        return Articulo.objects.filter(sede_id=sede_id).prefetch_related('historico_precios_set').distinct()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -32,6 +33,25 @@ class ArticuloCreateView(LoginRequiredMixin,CreateView):
     template_name = 'createArticulo.html'
     success_url = reverse_lazy('lista_articulo')
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        usuario = self.request.user
+        sede_id = usuario.sedePerteneciente.id
+        form.instance.sede_id = sede_id
+
+        response = super().form_valid(form)
+
+        Historico_Precios.objects.create(
+            fecha=timezone.now().date(),
+            precio_iva_incluido=form.instance.precioCosto+form.instance.iva,
+            articulo=form.instance
+        )
+
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -46,9 +66,28 @@ class ArticuloUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'createArticulo.html'
     success_url = reverse_lazy('lista_articulo')
 
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
+    def form_valid(self, form):
+        articulo_anterior = Articulo.objects.get(pk=self.object.pk)
+        precio_anterior = articulo_anterior.precioCosto + articulo_anterior.iva
+
+        response = super().form_valid(form)
+
+        articulo_actualizado = self.object
+        precio_actualizado = articulo_actualizado.precioCosto + articulo_actualizado.iva
+
+        if precio_anterior != precio_actualizado:
+            Historico_Precios.objects.create(
+                fecha=timezone.now().date(),
+                precio_iva_incluido=precio_actualizado,
+                articulo=articulo_actualizado
+            )
+
+        return response
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Edicion de Articulos'

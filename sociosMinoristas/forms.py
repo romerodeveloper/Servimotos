@@ -13,13 +13,12 @@ class SocioForm(ModelForm):
         self.fields['razonSocial'].initial = ''
         self.fields['nit'].initial = ''
         self.fields['telefonoPrincipal'].initial = ''
-        self.fields['telefonoPrincipal'].initial = ''
         self.fields['nombreRepresentante'].initial = ''
 
     class Meta:
         model = SocioMinorista
         fields = '__all__'
-        exclude = ['totalVentas', 'montoPendiente', 'compañiaAsociada']
+        exclude = ['totalVentas', 'montoPendiente', 'compañiasAsociadas']
         widgets = {
             'razonSocial': TextInput(
                 attrs={

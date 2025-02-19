@@ -10,3 +10,12 @@ class Empresa(models.Model):
 
     class Meta:
         abstract = True
+
+    def to_json(self):
+        return {
+            "razonSocial": self.razonSocial,
+            "nit": self.nit,
+            "telefonoPrincipal": self.telefonoPrincipal,
+            "correo": self.correo,
+            "nombreRepresentante": self.nombreRepresentante,
+        }
