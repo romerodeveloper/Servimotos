@@ -47,7 +47,7 @@ class ArticuloCreateView(LoginRequiredMixin,CreateView):
 
         Historico_Precios.objects.create(
             fecha=timezone.now().date(),
-            precio_iva_incluido=form.instance.precioCosto+form.instance.iva,
+            precioIvaIncluido=form.instance.precioCosto+form.instance.iva,
             articulo=form.instance
         )
 
@@ -83,7 +83,7 @@ class ArticuloUpdateView(LoginRequiredMixin, UpdateView):
         if precio_anterior != precio_actualizado:
             Historico_Precios.objects.create(
                 fecha=timezone.now().date(),
-                precio_iva_incluido=precio_actualizado,
+                precioIvaIncluido=precio_actualizado,
                 articulo=articulo_actualizado
             )
 

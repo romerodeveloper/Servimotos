@@ -36,7 +36,7 @@ class Articulo(models.Model):
 
 class Historico_Precios(models.Model):
     fecha = models.DateField(verbose_name='Fecha de Guardado')
-    precio_iva_incluido = models.CharField(max_length=255, verbose_name='Precio de Compra Iva Incluido')
+    precioIvaIncluido = models.CharField(max_length=255, verbose_name='Precio de Compra Iva Incluido')
     articulo = models.ForeignKey(Articulo, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -44,5 +44,5 @@ class Historico_Precios(models.Model):
 
     def toJSON(self):
         item = model_to_dict(self)
-        item['precio_iva_incluido'] = format(self.precio_iva_incluido, '.2f')
+        item['precio_iva_incluido'] = format(self.precioIvaIncluido, '.2f')
         return item

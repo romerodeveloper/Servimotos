@@ -1,34 +1,28 @@
 from django.forms import *
 from datetime import datetime
+
+from django.template.context_processors import request
+
+from sociosMinoristas.models import SocioMinorista
 from ventas.models import Venta
 
 
 class VentaForm(ModelForm):
     def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         for form in self.visible_fields():
             form.field.widget.attrs['autocomplete'] = 'off'
 
-        # forma 1
-        self.fields['use'].widget.attrs['autofocus'] = True
-        self.fields['use'].widget.attrs['class'] = 'form-control select2'
-        self.fields['use'].widget.attrs['style'] = 'width: 100%'
+        compania = self.request.user.sedePerteneciente.companiaPerteneciente.id
+        self.fields['cliente'].queryset = SocioMinorista.objects.filter(compañiasAsociadas=compania)
 
-        # forma 2
-        # self.fields['cli'].widget.attrs = {
-        #     'autofocus': True,
-        #     'class': 'form-control select2',
-        #     'style': 'width: 100%'
-        # }
 
     class Meta:
         model = Venta
         fields = '__all__'
+        exclude = ['use']
         widgets = {
-            'use': Select(attrs={
-                'class': 'form-control select2',
-                'style': 'width: 100%'
-            }),
             'date_joined': DateInput(
                 format='%Y-%m-%d',
                 attrs={
@@ -43,9 +37,9 @@ class VentaForm(ModelForm):
             'iva': TextInput(attrs={
                 'class': 'form-control',
             }),
-            'cliente': TextInput(attrs={
-                'placeholder':'Nombre de cliente',
-                'class': 'form-control',
+            'cliente': Select(attrs={
+                'class': 'form-control select2',
+                'style': 'width: 100%'
             }),
             'descuento': TextInput(attrs={
                 'class': 'form-control',

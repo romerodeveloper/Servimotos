@@ -3,7 +3,6 @@ var tblProducts;
 
 var vents = {
     items: {
-        use: '',
         date_joined: '',
         cliente: '',
         descuento: parseFloat(0.0),
@@ -12,27 +11,53 @@ var vents = {
         total: parseFloat(0.0),
         products: [],
         articulosEliminados: [],
-        contador: 0
+        contador: 0,
+        ganancia: parseFloat(0.0),
+        totalPrecioDistribuidor: parseFloat(0.0),
+        porcentajeDescuento :  parseFloat(0.0)
 
     },
     calculate_invoice: function () {
         var subtotal = 0.0;
+        var costoGeneral = 0.0;
         var porcentajeIva = $('input[name="iva"]').val();
+
         $.each(this.items.products, function (pos, dict) {
-            console.log(dict)
+            console.log("esto es un diccionario", dict)
             dict.subtotal = dict.cant * parseFloat(dict.precioFinal);
             subtotal+=dict.subtotal;
+            dict.costoPorProducto = dict.cant * parseFloat(dict.precioCosto);
+            costoGeneral += dict.costoPorProducto;
         });
-        this.items.descuento = $('input[name="descuento"]').val();
+        // Aplicar descuento
+        var descuento = (subtotal * this.items.porcentajeDescuento) / 100;
+        this.items.descuento = descuento;
+
+        // Calcular total, IVA y subtotal
         this.items.total = subtotal - this.items.descuento;
-        this.items.iva = this.items.total * (porcentajeIva/100);
-        this.items.subtotal = this.items.total - this.items.iva ;
+        this.items.iva = this.items.total * (porcentajeIva / 100);
+        this.items.subtotal = this.items.total - this.items.iva;
 
+        // Calcular ganancia
+        this.items.ganancia = this.items.total - costoGeneral;
 
+        // Verificar si la ganancia es menor al 5% del valor total,
+        //le que se considera como ganancia minima debe ser el valor de comsion del vendedor mas 1%
+        var gananciaMinima = this.items.total * 0.05;
+        if (this.items.ganancia < gananciaMinima) {
+            alert('No es posible aplicar este descuento. La ganancia del producto no soporta el descuento.');
+            this.items.descuento = 0;
+            this.items.total = subtotal;
+            this.items.iva = this.items.total * (porcentajeIva / 100);
+            this.items.subtotal = this.items.total - this.items.iva;
+            this.items.ganancia = this.items.total - costoGeneral;
+        }
 
+        // Actualizar los campos en el formulario
         $('input[name="subtotal"]').val(this.items.subtotal.toFixed(2));
         $('input[name="ivacalc"]').val(this.items.iva.toFixed(2));
         $('input[name="total"]').val(this.items.total.toFixed(2));
+        $('input[name="descuento"]').val(this.items.descuento.toFixed(2));
     },
     llenar: function () {
         this.items.contador = 1;
@@ -229,12 +254,7 @@ $(function () {
             var desc = parseInt($(this).val());
             vents.items.descuento = desc;
             vents.calculate_invoice();
-    });$('.form-group')
-        .on('change', 'input[name="cliente"]', function () {
-            console.clear();
-            var cli = $(this).val();
-            vents.items.cliente = cli;
-    });
+    })
 
     $('.cont')
         .on('click','.btnRemoveAllItems', function () {
@@ -246,6 +266,31 @@ $(function () {
                 vents.items.products = [];
                 vents.list();
             });
+    });
+
+    //Consultar el descuento del socio para validacion
+    $('select[name="cliente"]').on('change', function () {
+        var clienteId = $(this).val();
+
+        if (clienteId) {
+            $.ajax({
+               url: window.location.pathname,
+               type: 'POST',
+               data: {
+                   action: 'validar_descuento',
+                   cliente_id: clienteId
+                },
+               success: function (response) {
+                    if (response.porcentajeDescuento) {
+                        vents.items.porcentajeDescuento = parseFloat(response.porcentajeDescuento);
+                        vents.calculate_invoice();
+                    }
+                },
+                error: function () {
+                    console.error('Error al obtener el porcentaje de descuento : ', response.error);
+                }
+            });
+        }
     });
 
     $('.btnClearSearch').on('click', function () {
@@ -327,13 +372,14 @@ $(function () {
         }
 
         vents.items.date_joined = $('input[name="date_joined"]').val();
-        vents.items.use = $('select[name="use"]').val();
+        vents.items.cliente = $('select[name="cliente"]').val();
         var parameters = new FormData();
         parameters.append('action', $('input[name="action"]').val());
         parameters.append('vents', JSON.stringify(vents.items));
         submit_with_ajax(window.location.pathname, 'Notificación', '¿Estas seguro de realizar la siguiente acción?', parameters, function () {
             location.href = '/venta/list/';
         });
+        console.log(vents)
     });
 
     $('select[name="search"]').select2({

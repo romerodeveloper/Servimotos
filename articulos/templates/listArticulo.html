@@ -95,7 +95,7 @@
             <div class="card-body" style="background-color: rgba(0, 0, 0, 0.05);">
                 <ul>
                     {% for historico in c.historico_precios_set.all %}
-                    <li>{{ historico.fecha }} - Precio : {{ historico.precio_iva_incluido }}</li>
+                    <li>{{ historico.fecha }} - Precio : {{ historico.precioIvaIncluido }}</li>
                     {% empty %}
                     <li class="text-muted">No hay historial de precios disponible.</li>
                     {% endfor %}

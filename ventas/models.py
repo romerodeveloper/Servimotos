@@ -2,23 +2,27 @@ from datetime import datetime
 from django.db import models
 # Create your models here.
 from django.forms import model_to_dict
+
+from sociosMinoristas.models import SocioMinorista
 from user.models import User
 from articulos.models import Articulo
 
 
 class Venta(models.Model):
     use = models.ForeignKey(User, on_delete=models.CASCADE)
-    cliente = models.CharField(max_length=255, verbose_name='Referencia', default='N/A')
+    cliente = models.ForeignKey(SocioMinorista, on_delete=models.CASCADE)
     date_joined = models.DateField(default=datetime.now)
     descuento = models.DecimalField(default=0.0, max_digits=9, decimal_places=1)
     subtotal = models.DecimalField(default=0.0, max_digits=9, decimal_places=1)
     iva = models.DecimalField(default=0.0, max_digits=9, decimal_places=1)
     total = models.DecimalField(default=0.0, max_digits=9, decimal_places=1)
+    ganancia = models.DecimalField(default=0.0, max_digits=9, decimal_places=1)
 
     def toJSON(self):
         item = model_to_dict(self)
         item['use'] = self.use.toJSON()
         item['descuento'] = format(self.descuento, '.1f')
+        item['ganancia'] = format(self.descuento, '.1f')
         item['subtotal'] = format(self.subtotal, '.1f')
         item['iva'] = format(self.iva, '.1f')
         item['total'] = format(self.total, '.1f')
