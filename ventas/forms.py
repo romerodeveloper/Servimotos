@@ -17,7 +17,6 @@ class VentaForm(ModelForm):
         compania = self.request.user.sedePerteneciente.companiaPerteneciente.id
         self.fields['cliente'].queryset = SocioMinorista.objects.filter(compañiasAsociadas=compania)
 
-
     class Meta:
         model = Venta
         fields = '__all__'
@@ -38,6 +37,10 @@ class VentaForm(ModelForm):
                 'class': 'form-control',
             }),
             'cliente': Select(attrs={
+                'class': 'form-control select2',
+                'style': 'width: 100%'
+            }),
+            'estadoVenta': Select(attrs={
                 'class': 'form-control select2',
                 'style': 'width: 100%'
             }),

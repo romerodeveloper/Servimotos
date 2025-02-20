@@ -14,7 +14,10 @@ var vents = {
         contador: 0,
         ganancia: parseFloat(0.0),
         totalPrecioDistribuidor: parseFloat(0.0),
-        porcentajeDescuento :  parseFloat(0.0)
+        porcentajeDescuento :  parseFloat(0.0),
+        estadoPrestamoSocio: '',
+        montoPendiente :  parseFloat(0.0),
+        estadoDeVenta : 'PAGO'
 
     },
     calculate_invoice: function () {
@@ -283,6 +286,8 @@ $(function () {
                success: function (response) {
                     if (response.porcentajeDescuento) {
                         vents.items.porcentajeDescuento = parseFloat(response.porcentajeDescuento);
+                        vents.items.montoPendiente = parseFloat(response.montoMaximoPendiente);
+                        vents.items.estadoPrestamoSocio = response.estadoPrestamo
                         vents.calculate_invoice();
                     }
                 },
@@ -292,6 +297,45 @@ $(function () {
             });
         }
     });
+
+    //Validacion de estadoDeVenta
+    $('select[name="estadoVenta"]').on('change', function () {
+        var selectedEstado = $(this).val();
+        var montoPendiente = vents.items.montoPendiente;
+        var estadoPrestamo = vents.items.estadoPrestamoSocio;
+        var totalVenta = vents.items.total;
+
+        function setEstadoPago() {
+            setTimeout(() => {
+                $(this).val("PAGO").trigger("change");
+                vents.items.estadoDeVenta = "PAGO";
+            }, 10);
+        }
+
+        if (selectedEstado === "DEVUELTO") {
+            alert("No se ha generado una venta, por lo tanto, no se puede poner el estado de devolución.");
+            setEstadoPago.call(this);
+            return;
+        }
+
+        if (selectedEstado === "PENDIENTE") {
+            if (estadoPrestamo !== "ACTIVO") {
+                alert("Su cupo no soporta el valor de la factura.");
+                setEstadoPago.call(this);
+                return;
+            }
+
+            if (totalVenta > montoPendiente) {
+                alert("Su cupo no soporta el valor de la factura.");
+                setEstadoPago.call(this);
+                return;
+            }
+        }
+
+        vents.items.estadoDeVenta = selectedEstado;
+    });
+
+
 
     $('.btnClearSearch').on('click', function () {
         $('input[name="search"]').val('').focus();

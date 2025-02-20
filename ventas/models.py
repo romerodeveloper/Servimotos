@@ -9,6 +9,17 @@ from articulos.models import Articulo
 
 
 class Venta(models.Model):
+    class EstadoVenta(models.TextChoices):
+        PAGO = "PAGO"
+        PENDIENTE = "PENDIENTE"
+        DEVUELTO = "DEVUELTO"
+
+    estadoVenta = models.CharField(
+        max_length=10,
+        choices=EstadoVenta.choices,
+        default=EstadoVenta.PAGO,
+        verbose_name="Estado de la Venta Actual"
+    )
     use = models.ForeignKey(User, on_delete=models.CASCADE)
     cliente = models.ForeignKey(SocioMinorista, on_delete=models.CASCADE)
     date_joined = models.DateField(default=datetime.now)

@@ -100,7 +100,7 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
             elif action == 'check_stock':
                 data = self.check_stock(request)
             elif action == 'validar_descuento':
-                data = self.obtener_porcentaje_descuento(request)
+                data = self.obtener_datos_socio(request)
             else:
                 data['error'] = 'No ha ingresado a ninguna opción'
         except Articulo.DoesNotExist:
@@ -110,12 +110,14 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
 
         return JsonResponse(data, safe=False)
 
-    def obtener_porcentaje_descuento(self, request):
+    def obtener_datos_socio(self, request):
         data = {}
         cliente_id = request.POST.get('cliente_id')
         try:
             cliente = SocioMinorista.objects.get(id=cliente_id)
-            data['porcentajeDescuento'] = cliente.porcentajeDescuento;
+            data['porcentajeDescuento'] = cliente.porcentajeDescuento
+            data['estadoPrestamo'] = cliente.prestamo
+            data['montoMaximoPendiente'] = cliente.montoMaximoPendiente
             return data
         except SocioMinorista.DoesNotExist:
             data['error'] = "Cliente no encontrado"
@@ -176,8 +178,10 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
                 venta.total = float(vents['total'])
                 gananciaAntesDeComision = float(vents['ganancia'])
                 venta.ganancia = gananciaAntesDeComision - self.update_user_comision(request, venta.total)
+                venta.estadoVenta = vents['estadoDeVenta']
                 venta.save()
 
+                self.update_socio_ventas_totales(cliente, venta.total, venta.estadoVenta)
                 self.update_sede_ventas_totales(request, venta.total)
                 self.update_compania_ventas_totales(request, venta.total)
 
@@ -243,6 +247,14 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
         sede_actualizada = Sede.objects.get(id=request.user.sedePerteneciente.id)
         sede_actualizada.ventasTotales += total
         sede_actualizada.save()
+
+    def update_socio_ventas_totales(self, cliente, total, estado):
+        #Agregar opcion de pendiente aqui con un if
+        if (estado == Venta.EstadoVenta.PENDIENTE):
+            cliente.montoMaximoPendiente -= total
+            cliente.montoPendiente += total
+        cliente.totalVentas += total
+        cliente.save()
 
     def update_compania_ventas_totales(self, request, total):
         compania_actualizada = Compañia.objects.get(id=request.user.sedePerteneciente.companiaPerteneciente.id)

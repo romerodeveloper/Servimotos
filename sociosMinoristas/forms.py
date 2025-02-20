@@ -39,5 +39,8 @@ class SocioForm(ModelForm):
             }),
             'porcentajeDescuento': TextInput(attrs={
                 'placeholder': 'Valor porcentual de descuento',
+            }),
+            'montoMaximoPendiente': TextInput(attrs={
+                'placeholder': 'Valor maximo de prestamo',
             })
         }

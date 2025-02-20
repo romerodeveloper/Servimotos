@@ -34,9 +34,37 @@
             {{ form.porcentajeDescuento }}
         </div>
     </div>
+     <div class="form-row">
+            <div class="form-group">
+                {{ form.prestamo.label }}
+                {{ form.prestamo }}
+            </div>
+            <div class="form-group" id="montoMaximoPendienteContainer" style="display: none;">
+                {{ form.montoMaximoPendiente.label }}
+                {{ form.montoMaximoPendiente }}
+            </div>
+     </div>
+
     <button type="submit" class="btn btn-primary">Enviar</button>
 </form>
 <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var prestamoField = document.getElementById("{{ form.prestamo.id_for_label }}");
+        var montoMaxContainer = document.getElementById("montoMaximoPendienteContainer");
+
+        function toggleMontoMaximo() {
+            if (prestamoField.value === "ACTIVO") {
+                montoMaxContainer.style.display = "block";
+            } else {
+                montoMaxContainer.style.display = "none";
+            }
+        }
+
+        toggleMontoMaximo();
+
+        prestamoField.addEventListener("change", toggleMontoMaximo);
+    });
+
     {% if form.errors %}
         var errors = '';
         {% for field in form %}
