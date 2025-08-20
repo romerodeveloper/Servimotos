@@ -15,6 +15,18 @@ class SocioForm(ModelForm):
         self.fields['telefonoPrincipal'].initial = ''
         self.fields['nombreRepresentante'].initial = ''
 
+    def clean(self):
+        cleaned_data = super().clean()
+
+        for field in self.fields:
+            if field != 'modeloFactura':
+                value = cleaned_data.get(field)
+                if value and isinstance(value, str):
+                    cleaned_data[field] = value.upper()
+
+        return cleaned_data
+
+
     class Meta:
         model = SocioMinorista
         fields = '__all__'

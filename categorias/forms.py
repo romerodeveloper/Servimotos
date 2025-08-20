@@ -13,6 +13,7 @@ class CategoriaForm(ModelForm):
     class Meta:
         model = Categoria
         fields = '__all__'
+        exclude = ['compañiaAsociada']
         widgets = {
             'nombre': TextInput(
                 attrs={

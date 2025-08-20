@@ -10,15 +10,18 @@ from sedes.models import Sede
 
 
 class Articulo(models.Model):
-    nombre = models.CharField(max_length=255, verbose_name='Referencia')
-    precioCosto = models.FloatField(verbose_name='Precio Distribuidor')
-    tasaGanacia = models.FloatField(verbose_name='Porcentaje de Ganancia')
-    iva = models.FloatField(verbose_name='Iva (calculado antes de ganancia)')
-    precioFinal = models.FloatField(verbose_name='Precio Publico')
+
+    nombre = models.CharField(max_length=255, verbose_name='Referencia', null=True)
+    codigoOriginal = models.CharField(max_length=255, verbose_name='Codigo Original')
+    distribuidor = models.ForeignKey(Distribuidor, on_delete=models.CASCADE)
+    descuentoAntesDeIva = models.IntegerField(verbose_name='Descuento Por Distribuidor', default=0)
+    precioCosto = models.DecimalField(verbose_name='Precio Distribuidor', max_digits=12, decimal_places=0)
+    tasaGanacia = models.IntegerField(verbose_name='Porcentaje de Ganancia')
+    iva = models.DecimalField(verbose_name='Iva (calculado antes de ganancia)', max_digits=12, decimal_places=0)
+    precioFinal = models.DecimalField(verbose_name='Precio Publico', max_digits=12, decimal_places=0)
     stock = models.IntegerField(verbose_name='Cantidad Unidades')
     categoria = models.ForeignKey(Categoria, on_delete=models.SET_NULL, null=True, verbose_name='Categoria')
     marca = models.ForeignKey(Marca, on_delete=models.SET_NULL, null=True, verbose_name='Marca')
-    distribuidor = models.ForeignKey(Distribuidor, on_delete=models.CASCADE)
     sede = models.ForeignKey(Sede, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -28,15 +31,13 @@ class Articulo(models.Model):
         item = model_to_dict(self)
         item['categoria'] = self.categoria.toJSON()
         item['marca'] = self.marca.toJSON()
-        item['precioFinal'] = format(self.precioFinal, '.2f')
-        item['iva'] = format(self.iva, '.2f')
         item['distribuidor'] = self.distribuidor.toJSON()
         return item
 
 
 class Historico_Precios(models.Model):
     fecha = models.DateField(verbose_name='Fecha de Guardado')
-    precioIvaIncluido = models.CharField(max_length=255, verbose_name='Precio de Compra Iva Incluido')
+    precioIvaIncluido = models.DecimalField(max_digits=12, decimal_places=0, verbose_name='Precio de Compra Iva Incluido')
     articulo = models.ForeignKey(Articulo, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -44,5 +45,4 @@ class Historico_Precios(models.Model):
 
     def toJSON(self):
         item = model_to_dict(self)
-        item['precio_iva_incluido'] = format(self.precioIvaIncluido, '.2f')
         return item

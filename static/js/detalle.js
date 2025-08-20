@@ -63,6 +63,7 @@ var vents = {
         $('input[name="descuento"]').val(this.items.descuento.toFixed(2));
     },
     llenar: function () {
+        $('select[name="cliente"]').trigger('change');
         this.items.contador = 1;
         $.each(this.items.products, function (pos, dict) {
             dict.cantidadIni = dict.cant
@@ -100,7 +101,7 @@ var vents = {
             columns: [
                 {"data": "id"},
                 {"data": "nombre"},
-                {"data": "categoria.nombre"},
+                {"data": "codigoOriginal"},
                 {"data": "precioFinal"},
                 {"data": "cant"},
                 {"data": "subtotal"},
@@ -436,11 +437,12 @@ $(function () {
             url: window.location.pathname,
             data: function (params) {
                 return {
-                    action: 'search_autocomplete',
+                    action: 'search_products',
                     term: params.term,
                 };
             },
             processResults: function (data) {
+                console.log("Respuesta del servidor:", data);
                 return {
                     results: data
                 };

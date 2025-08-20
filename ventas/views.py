@@ -1,12 +1,15 @@
 import logging
 import json
 import os
+import traceback
 from decimal import Decimal
 
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db import models
 from django.utils import timezone
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.core.mail.backends import console
 from django.db import transaction
 from django.db.models import F
@@ -23,6 +26,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, ListView, DeleteView, UpdateView
 from unicodedata import decimal
 
+import user
 from compañias.models import Compañia
 from sedes.models import Sede
 from sociosMinoristas.models import SocioMinorista
@@ -33,6 +37,9 @@ from articulos.models import Articulo
 from weasyprint import HTML, CSS
 
 from servimotos import settings
+from ventas.utils import VentaUtils
+import traceback
+
 
 
 class VentaListView(LoginRequiredMixin, ListView):
@@ -82,7 +89,6 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
-        # Pasar el request al formulario
         kwargs = super().get_form_kwargs()
         kwargs['request'] = self.request
         return kwargs
@@ -92,13 +98,11 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
         try:
             action = request.POST['action']
             if action == 'search_products':
-                data = self.search_products(request)
-            elif action == 'search_autocomplete':
-                data = self.search_autocomplete(request)
+                data = VentaUtils.search_autocomplete(request)
             elif action == 'add':
                 data = self.add_venta(request)
             elif action == 'check_stock':
-                data = self.check_stock(request)
+                data = VentaUtils.check_stock(request)
             elif action == 'validar_descuento':
                 data = self.obtener_datos_socio(request)
             else:
@@ -123,25 +127,6 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
             data['error'] = "Cliente no encontrado"
             return data
 
-    def search_autocomplete(self, request):
-        data = []
-        term = request.POST['term'].strip()
-        parts = term.split(',')
-        nombre = parts[0].strip() if len(parts) > 0 else ""
-        categoria = parts[1].strip() if len(parts) > 1 else ""
-        products = Articulo.objects.filter(stock__gt=0, sede_id=self.request.user.sedePerteneciente.id)
-
-        if nombre:
-            products = products.filter(nombre__icontains=nombre)
-        if categoria:
-            products = products.filter(categoria__nombre__icontains=categoria)
-
-        for i in products[0:10]:
-            item = i.toJSON()
-            item['text'] = f"{i.nombre}, {i.categoria.nombre}"
-            data.append(item)
-        return data
-
     def search_products(self, request):
         data = []
         termino = request.POST['term']
@@ -159,67 +144,49 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
             with transaction.atomic():
                 vents = json.loads(request.POST['vents'])
                 productos = vents['products']
-
-                # Validar el stock de todos los productos antes de continuar
                 for product_data in productos:
                     producto_id = product_data['id']
                     cantidad = int(product_data['cant'])
-                    self.validar_stock(producto_id, cantidad)
+                    VentaUtils.validar_stock(producto_id, cantidad)
                 cliente_id = vents['cliente']
                 cliente = SocioMinorista.objects.get(id=cliente_id)
-                # Si la validación pasa, proceder con la venta
                 venta = Venta()
                 venta.date_joined = vents['date_joined']
                 venta.use_id = self.usuario
                 venta.cliente = cliente
-                venta.descuento = float(vents['descuento'])
-                venta.subtotal = float(vents['subtotal'])
-                venta.iva = float(vents['iva'])
-                venta.total = float(vents['total'])
-                gananciaAntesDeComision = float(vents['ganancia'])
+                venta.descuento = Decimal(vents['descuento'])
+                venta.subtotal = Decimal(vents['subtotal'])
+                venta.iva = Decimal(vents['iva'])
+                venta.total = Decimal(vents['total'])
+                gananciaAntesDeComision = Decimal(vents['ganancia'])
                 venta.ganancia = gananciaAntesDeComision - self.update_user_comision(request, venta.total)
                 venta.estadoVenta = vents['estadoDeVenta']
                 venta.save()
 
                 self.update_socio_ventas_totales(cliente, venta.total, venta.estadoVenta)
-                self.update_sede_ventas_totales(request, venta.total)
-                self.update_compania_ventas_totales(request, venta.total)
+                VentaUtils.actualizar_ventas(self.request.user, venta.total)
 
                 for product_data in productos:
-                    self.add_detalle_venta(venta, product_data)
+                    VentaUtils.add_detalle_venta(venta, product_data)
 
         except ValidationError as e:
             data['error'] = str(e)
         except Exception as e:
-            data['error'] = str(e)
+            # Obtenemos el traceback completo
+            error_trace = traceback.format_exc()
+                    # Preparamos respuesta con detalles del error
+            error_response = {
+                'error': str(e),
+                'detail': "Error en el servidor",
+                'trace': error_trace if settings.DEBUG else None  # Solo en desarrollo
+            }
+            data['error'] = error_response
 
         return data
 
-    def validar_stock(self, producto_id, cantidad):
-        """
-        Valida el stock del producto y bloquea el registro para evitar concurrencia.
-        """
-        with transaction.atomic():
-            producto = Articulo.objects.select_for_update().get(pk=producto_id)
-            if producto.stock < cantidad:
-                raise ValidationError(f'Solo quedan {producto.stock} unidades disponibles de {producto.nombre}')
-            producto.stock = F('stock') - cantidad
-            producto.save()
-
-    def add_detalle_venta(self, venta, product_data):
-
-        det = DetVenta()
-        det.venta_id = venta.id
-        det.articulo_id = product_data['id']
-        det.cantidad = int(product_data['cant'])
-        det.precio = float(product_data['precioFinal'])
-        det.subtotal = float(product_data['subtotal'])
-        det.save()
-
     def update_user_comision(self, request, total):
         usuario = User.objects.get(pk=request.user.id)
-        comision = total * float(usuario.porcentajeComision) / 100
-        print(comision)
+        comision = total * Decimal(usuario.porcentajeComision) / 100
 
         fecha_actual = timezone.now()
         mes_actual = fecha_actual.month
@@ -243,11 +210,6 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
 
         return comision
 
-    def update_sede_ventas_totales(self, request, total):
-        sede_actualizada = Sede.objects.get(id=request.user.sedePerteneciente.id)
-        sede_actualizada.ventasTotales += total
-        sede_actualizada.save()
-
     def update_socio_ventas_totales(self, cliente, total, estado):
         #Agregar opcion de pendiente aqui con un if
         if (estado == Venta.EstadoVenta.PENDIENTE):
@@ -256,23 +218,7 @@ class VentaCreateView(LoginRequiredMixin, CreateView):
         cliente.totalVentas += total
         cliente.save()
 
-    def update_compania_ventas_totales(self, request, total):
-        compania_actualizada = Compañia.objects.get(id=request.user.sedePerteneciente.companiaPerteneciente.id)
-        compania_actualizada.ventasTotales += total
-        compania_actualizada.save()
 
-    def check_stock(self, request):
-        data = {}
-        producto_id = request.POST.get('id')
-        cantidad = int(request.POST.get('cantidad', 0))
-        producto = Articulo.objects.get(pk=producto_id)
-        if producto.stock >= cantidad:
-            data['status'] = 'ok'
-        else:
-            data['status'] = 'error'
-            data['message'] = f'Solo quedan {producto.stock} unidades disponibles de {producto.nombre}'
-            data['cantidadDisponible'] = producto.stock
-        return data
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -308,77 +254,111 @@ class VentaDeleteView(LoginRequiredMixin, DeleteView):
         context['list_url'] = self.success_url
         return context
 
-
 class VentaUpdateView(LoginRequiredMixin, UpdateView):
     model = Venta
     form_class = VentaForm
     template_name = 'createVenta.html'
     success_url = reverse_lazy('lista_venta')
-    url_redirect = success_url
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
+
     def post(self, request, *args, **kwargs):
         data = {}
-        self.usuario = self.request.user.id
         try:
-            action = request.POST['action']
+            action = request.POST.get('action', '')
             if action == 'search_products':
-                data = []
-                termino = request.POST['term']
-                prods = Articulo.objects.filter(nombre__icontains=termino)[0:10]
-                for i in prods:
-                    item = i.toJSON()
-                    item['value'] = i.nombre
-                    data.append(item)
-            elif action == 'search_autocomplete':
-                data = []
-                term = request.POST['term'].strip()
-                data.append({'id': term, 'text': term})
-                products = Articulo.objects.filter(nombre__icontains=term, stock__gt=0)
-                for i in products[0:10]:
-                    item = i.toJSON()
-                    item['text'] = i.nombre
-                    data.append(item)
+                return JsonResponse(VentaUtils.search_autocomplete(request), safe=False)
             elif action == 'edit':
-                with transaction.atomic():
-                    vents = json.loads(request.POST['vents'])
-                    # venta = Venta.objects.get(pk=self.get_object().id)
-                    cliente_id = vents['cliente']
-                    cliente = SocioMinorista.objects.get(id=cliente_id)
-                    venta = self.get_object()
-                    venta.date_joined = vents['date_joined']
-                    venta.use_id = self.usuario
-                    venta.cliente = cliente
-                    venta.descuento = float(vents['descuento'])
-                    venta.subtotal = float(vents['subtotal'])
-                    venta.iva = float(vents['iva'])
-                    venta.total = float(vents['total'])
-                    venta.save()
-                    venta.detventa_set.all().delete()
-                    for i in vents['products']:
-                        det = DetVenta()
-                        det.venta_id = venta.id
-                        det.articulo_id = i['id']
-                        det.cantidad = int(i['cant'])
-                        det.precio = float(i['precioFinal'])
-                        det.subtotal = float(i['subtotal'])
-                        det.save()
-                        det.articulo.stock -= (int(i['cant']) - int(i['cantidadIni']))
-                        det.articulo.save()
-                    if vents['articulosEliminados'] != []:
-                        for i in vents['articulosEliminados']:
-                            articulo = Articulo.objects.get(pk=i['id'])
-                            articulo.stock += int(i['cantidadIni'])
-                            articulo.save()
-
+                return self.edit_venta(request, data)
+            elif action == 'check_stock':
+                return JsonResponse(VentaUtils.check_stock(request, "edit", self.get_object()), safe=False)
+            elif action == 'validar_descuento':
+                return self.obtener_datos_socio(request)
             else:
-                data['error'] = 'No ha ingresado a ninguna opción'
+                return JsonResponse({'error': 'Acción no válida'}, status=400)
+
         except Exception as e:
-            data['error'] = str(e)
+            return JsonResponse({'error': str(e)}, status=500)
+
+    def search_products(self, request, data):
+        termino = request.POST.get('term', '').strip()
+        productos = Articulo.objects.filter(nombre__icontains=termino)[:10]
+        data['productos'] = [{'id': prod.id, 'value': prod.nombre, **prod.toJSON()} for prod in productos]
         return JsonResponse(data, safe=False)
+
+
+    def edit_venta(self, request, data):
+        try:
+            usuario_id = self.request.user.id
+            venta_data = json.loads(request.POST.get('vents', '{}'))
+
+            with transaction.atomic():
+                # Obtener la venta y cliente
+                venta = self.get_object()
+                cliente = SocioMinorista.objects.get(id=venta_data['cliente'])
+                descuentoPrevio = venta.descuento
+                estadoPrevio = venta.estadoVenta
+                # Actualizar datos de la venta
+                venta.date_joined = venta_data['date_joined']
+                venta.use_id = usuario_id
+                venta.cliente = cliente
+                venta.descuento = float(venta_data['descuento'])
+                venta.subtotal = float(venta_data['subtotal'])
+                venta.iva = float(venta_data['iva'])
+                venta.total = float(venta_data['total'])
+                gananciaAntesDeComision = Decimal(venta_data['ganancia'])
+                venta.save()
+
+                # Restaurar stock de productos eliminados
+                suma_devuelta = Decimal(0)
+                for detalle in venta.detventa_set.all():
+                    articulo = detalle.articulo
+                    articulo.stock += detalle.cantidad
+                    articulo.save()
+                    suma_devuelta += detalle.subtotal
+
+                totalDevolucion = suma_devuelta - descuentoPrevio
+                # Restar ventas a la sede, compañía y socio
+                VentaUtils.actualizar_ventas(self.request.user, (-totalDevolucion))
+                venta.ganancia = gananciaAntesDeComision - self.update_user_comision(usuario_id, totalDevolucion, venta.total)
+                self.update_socio_ventas_totales(cliente, totalDevolucion, venta.total, estadoPrevio, venta.estadoVenta)
+
+                # Eliminar detalles previos
+                venta.detventa_set.all().delete()
+
+                # Validar stock antes de actualizar
+                for producto in venta_data['products']:
+                    VentaUtils.validar_stock(producto['id'], int(producto['cant']))
+                for producto_data in venta_data['products']:
+                    VentaUtils.add_detalle_venta(venta, producto_data)
+
+                # Sumar ventas a la sede y compañía
+                VentaUtils.actualizar_ventas(self.request.user, venta.total)
+
+            data['message'] = 'Venta actualizada correctamente'
+            return JsonResponse(data, status=200)
+
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': 'Cliente o artículo no encontrado'}, status=400)
+        except KeyError:
+            return JsonResponse({'error': 'Datos de la venta incompletos'}, status=400)
+        except ValueError:
+            return JsonResponse({'error': 'Error en los valores numéricos'}, status=400)
+        except Exception as e:
+            tb = traceback.format_exc()
+            return JsonResponse({
+                'error': str(e),
+                'detail': "Ocurrió un error inesperado",
+                'traceback': tb,  # Esto incluirá la línea exacta del error
+                'type': type(e).__name__  # Tipo de excepción
+            }, status=500)
 
     def get_details_product(self):
         data = []
@@ -391,15 +371,105 @@ class VentaUpdateView(LoginRequiredMixin, UpdateView):
             pass
         return data
 
+    def update_user_comision(self, user_id, total_devuelto, total_recompra):
+        try:
+            usuario = User.objects.get(pk=int(user_id))
+
+            # Validar que el usuario tenga porcentajeComision
+            if usuario.porcentajeComision is None:
+                print(f"Advertencia: Usuario {user_id} no tiene porcentaje de comisión definido")
+                return float(0)  # Retorna 0 en lugar de None
+
+            total_recompra = Decimal(str(total_recompra))
+            total_devuelto = Decimal(str(total_devuelto))
+            porcentaje = Decimal(str(usuario.porcentajeComision)) / Decimal(100)
+
+            diferencia_comision = (total_recompra - total_devuelto) * porcentaje
+            comisionNeta = total_recompra * porcentaje
+
+            fecha_actual = timezone.now().date()
+            mes_actual = fecha_actual.month
+            anio_actual = fecha_actual.year
+
+            historico = HistoricosComisiones.objects.filter(
+                fecha__year=anio_actual,
+                fecha__month=mes_actual,
+                usuario=usuario
+            ).first()
+
+            if historico:
+                historico.comisionAcumulada += Decimal(diferencia_comision)
+                historico.save()
+            else:
+                HistoricosComisiones.objects.create(
+                    fecha=fecha_actual.date(),  # Se guarda la fecha actual
+                    comisionAcumulada=Decimal(diferencia_comision),
+                    usuario=usuario
+                )
+
+            return comisionNeta
+
+        except User.DoesNotExist:
+            print(f"Error: Usuario con ID {user_id} no encontrado.")
+            return float(0)  # Retorna 0 en lugar de None
+        except Exception as e:
+            tb = traceback.format_exc()
+            error_data = {
+                'error': str(e),
+                'detail': "Ocurrió un error inesperado",
+                'traceback': tb,
+                'type': type(e).__name__
+            }
+            print(error_data)  # Solo imprime el diccionario de error
+            return float(0)  # Retorna 0 como float
+
+    def update_socio_ventas_totales(self, cliente, total_devolucion, total_recompra, estado_previo, estado_nuevo):
+        cliente.totalVentas = F('totalVentas') - total_devolucion + total_recompra
+
+        if estado_previo == Venta.EstadoVenta.PENDIENTE:
+            cliente.montoMaximoPendiente = F('montoMaximoPendiente') + total_devolucion
+            cliente.montoPendiente = F('montoPendiente') - total_devolucion
+
+        if estado_nuevo == Venta.EstadoVenta.PENDIENTE:
+            cliente.montoMaximoPendiente = F('montoMaximoPendiente') - total_recompra
+            cliente.montoPendiente = F('montoPendiente') + total_recompra
+
+        cliente.save(update_fields=['totalVentas', 'montoMaximoPendiente', 'montoPendiente'])
+
+    def obtener_datos_socio(self, request):
+        data = {}
+        cliente_id = request.POST.get('cliente_id')
+
+        try:
+            cliente = SocioMinorista.objects.get(id=cliente_id)
+            data['porcentajeDescuento'] = cliente.porcentajeDescuento
+            data['estadoPrestamo'] = cliente.prestamo
+            data['montoMaximoPendiente'] = cliente.montoMaximoPendiente
+            return JsonResponse(data)  # Convertir a JsonResponse
+
+        except SocioMinorista.DoesNotExist:
+            return JsonResponse({'error': "Cliente no encontrado"}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Edición de una Venta'
         context['entity'] = 'Ventas'
         context['list_url'] = self.success_url
         context['action'] = 'edit'
-        context['det'] = json.dumps(self.get_details_product())
+        context['det'] = json.dumps(
+            self.get_details_product(),
+            cls=DecimalJSONEncoder  # Usamos nuestro encoder personalizado
+        )
         return context
 
+class DecimalJSONEncoder(DjangoJSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(str(obj))  # Convertimos Decimal a float (via string para precisión)
+        return super().default(obj)
 
 class VentaInvoicePdfView(View):
 

@@ -1,8 +1,142 @@
-{% extends 'form.html' %}
+{% extends 'body.html' %}
 {% load static %}
+
 {% block head %}
     <link href="{% static 'lib/bootstrap-touchspin-4.3.0/jquery.bootstrap-touchspin.css' %}" rel="stylesheet"/>
     <script src="{% static 'lib/bootstrap-touchspin-4.3.0/jquery.bootstrap-touchspin.js' %}"></script>
-
     <script src="{% static 'js/articulo.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <div class="card shadow-lg p-3 mb-5 bg-white rounded">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">Formulario de Artículo</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="{{ action }}">
+                    <!-- Primera fila: Nombre -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.nombre.label_tag }}
+                                {{ form.nombre }}
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.codigoOriginal.label_tag }}
+                                {{ form.codigoOriginal }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Segunda fila: Distribuidor y Descuento Antes de IVA -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.distribuidor.label_tag }}
+                                {{ form.distribuidor }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group descuento-container">
+                                {{ form.descuentoAntesDeIva.label_tag }}
+                                {{ form.descuentoAntesDeIva }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tercera fila: Precio Costo y IVA -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.precioCosto.label_tag }}
+                                {{ form.precioCosto }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.iva.label_tag }}
+                                {{ form.iva }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cuarta fila: Tasa Ganancia y Precio Final -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.tasaGanacia.label_tag }}
+                                {{ form.tasaGanacia }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.precioFinal.label_tag }}
+                                {{ form.precioFinal }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quinta fila: Stock, Marca y Categoría -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                {{ form.stock.label_tag }}
+                                {{ form.stock }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                {{ form.marca.label_tag }}
+                                {{ form.marca }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                {{ form.categoria.label_tag }}
+                                {{ form.categoria }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botón de envío -->
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-lg">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        {% if form.errors %}
+            var errors = '';
+            {% for field in form %}
+                {% for error in field.errors %}
+                    errors += '{{ error }}\n';
+                {% endfor %}
+            {% endfor %}
+            Swal.fire({
+                title: 'Error!',
+                text: errors,
+                icon: 'error'
+            });
+        {% endif %}
+
+        $('form').on('submit', function(e){
+            Swal.fire({
+                title: 'Correcto!',
+                text: 'Artículo guardado exitosamente',
+                icon: 'success'
+            });
+        });
+
+        {% block name %}
+        {% endblock %}
+    </script>
 {% endblock %}

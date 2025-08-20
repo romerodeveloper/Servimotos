@@ -7,8 +7,8 @@ class Distribuidor(Empresa):
         IVA_CALCULADO = 'Calculado'
         IVA_NO_CALCULADO= 'No Calculado'
         IVA_EXENTO = 'Exento'
-    telefonoAsesor = models.IntegerField(verbose_name='Telefono de Asesor', unique=True)
-    totalCompras = models.FloatField(verbose_name='Total de Compras', default=0)
+    telefonoAsesor = models.CharField(max_length=12, verbose_name='Telefono de Asesor', unique=True)
+    totalCompras = models.DecimalField(default=0, max_digits=9, decimal_places=0, verbose_name='Total de Compras')
     modeloFactura = models.CharField(
         max_length=50,
         verbose_name='Modelo de Factura',
@@ -24,7 +24,7 @@ class Distribuidor(Empresa):
 
     def toJSON(self):
         item = super().toJSON() if hasattr(super(), 'toJSON') else {}
-        item['totalCompras'] = format(self.totalCompras if self.totalCompras is not None else 0, '.2f')
+        item['totalCompras'] = self.totalCompras if self.totalCompras is not None else 0
         item['modeloFactura'] = self.get_modeloFactura_display()
         return item
 

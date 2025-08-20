@@ -11,16 +11,16 @@ from distribuidores.models import Distribuidor
 class Compra(models.Model):
     distribuidor = models.ForeignKey(Distribuidor, on_delete=models.CASCADE)
     date_joined = models.DateField(default=datetime.now)
-    subtotal = models.DecimalField(default=0.00, max_digits=9, decimal_places=2)
-    iva = models.DecimalField(default=0.00, max_digits=9, decimal_places=2)
-    total = models.DecimalField(default=0.00, max_digits=9, decimal_places=2)
+    subtotal = models.DecimalField(default=0, max_digits=9, decimal_places=0)
+    iva = models.DecimalField(default=0, max_digits=9, decimal_places=0)
+    total = models.DecimalField(default=0, max_digits=9, decimal_places=0)
 
     def toJSON(self):
         item = model_to_dict(self)
         item['distribuidor'] = self.distribuidor.toJSON()
-        item['subtotal'] = format(self.subtotal, '.2f')
-        item['iva'] = format(self.iva, '.2f')
-        item['total'] = format(self.total, '.2f')
+        item['subtotal'] = self.subtotal
+        item['iva'] = self.iva
+        item['total'] = self.total
         item['date_joined'] = self.date_joined.strftime('%Y-%m-%d')
         item['det'] = [i.toJSON() for i in self.detcompra_set.all()]
         return item
@@ -33,9 +33,9 @@ class Compra(models.Model):
 class DetCompra(models.Model):
     compra = models.ForeignKey(Compra, on_delete=models.CASCADE)
     articulo = models.ForeignKey(Articulo, on_delete=models.CASCADE)
-    precio = models.DecimalField(default=0.00, max_digits=9, decimal_places=2)
+    precio = models.DecimalField(default=0, max_digits=9, decimal_places=0)
     cantidad = models.IntegerField(default=0)
-    subtotal = models.DecimalField(default=0.00, max_digits=9, decimal_places=2)
+    subtotal = models.DecimalField(default=0, max_digits=9, decimal_places=0)
 
     def __str__(self):
         return self.prod.name
@@ -43,8 +43,8 @@ class DetCompra(models.Model):
     def toJSON(self):
         item = model_to_dict(self, exclude=['venta'])
         item['articulo'] = self.articulo.toJSON()
-        item['precio'] = format(self.precio, '.2f')
-        item['subtotal'] = format(self.subtotal, '.2f')
+        item['precio'] = self.precio
+        item['subtotal'] = self.subtotal
         return item
 
     class Meta:

@@ -13,24 +13,28 @@ $(function () {
             data: {
                 'action': 'searchdata'
             },
-            dataSrc: ""
+            dataSrc: function(data) {
+                console.log(data); // Esto mostrará los datos recibidos en la consola
+                return data;
+            }
+
         },
         columns: [
             {"data": "id"},
             {"data": "use.username"},
             {"data": "date_joined"},
-            {"data": "subtotal"},
+            {"data": "cliente.razonSocial"},
             {"data": "iva"},
             {"data": "total"},
             {"data": "id"},
         ],
         columnDefs: [
             {
-                targets: [-2, -3, -4],
+                targets: [-2, -3],
                 class: 'text-center',
                 orderable: false,
                 render: function (data, type, row) {
-                    return '$' + parseFloat(data).toFixed(1);
+                    return '$' + parseFloat(data);
                 }
             },
             {
@@ -84,7 +88,7 @@ $(function () {
                         targets: [-1, -3],
                         class: 'text-center',
                         render: function (data, type, row) {
-                            return '$' + parseFloat(data).toFixed(2);
+                            return '$' + parseFloat(data);
                         }
                     },
                     {

@@ -30,9 +30,14 @@ class ArticuloForm(ModelForm):
                     'placeholder': 'Ingrese un nombre a nivel general',
                 }
             ),
+            'codigoOriginal': TextInput(
+                attrs={
+                    'placeholder': 'Codigo de fabrica de producto',
+                }
+            ),
             'precioCosto': TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Precio del distribuidor',
+                'placeholder': 'Precio del distribuidor, especificado en factura',
             }),
             'tasaGanacia': TextInput(attrs={
                 'class': 'form-control',
@@ -41,15 +46,19 @@ class ArticuloForm(ModelForm):
             'iva': TextInput(attrs={
                 'readonly': True,
                 'class': 'form-control',
-                'placeholder': 'Precio calculado',
+                'placeholder': 'Valor calculado',
             }),
             'precioFinal': TextInput(attrs={
                 'readonly': True,
                 'class': 'form-control',
-                'placeholder': 'Precio calculado',
+                'placeholder': 'Precio de producto luego de iva y descuentos',
             }),
             'stock': TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Unidades adquiridas'
-            })
+            }),
+            'descuentoAntesDeIva': TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Descuento antes de IVA',
+            }),
         }

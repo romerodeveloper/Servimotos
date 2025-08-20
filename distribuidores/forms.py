@@ -10,7 +10,7 @@ from .models import Distribuidor
 class DistribuidorForm(ModelForm):
     class Meta:
         model = Distribuidor
-        exclude = ['totalCompras']
+        exclude = ['totalCompras', 'compañiaAsociada']
         widgets = {
             'razonSocial': TextInput(attrs={
                 'placeholder': 'Ingrese nombre del distribuidor',
@@ -45,3 +45,14 @@ class DistribuidorForm(ModelForm):
         self.fields['nit'].initial = ''
         self.fields['nombreRepresentante'].initial = ''
         self.fields['telefonoPrincipal'].initial = ''
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        for field in self.fields:
+            if field != 'modeloFactura':
+                value = cleaned_data.get(field)
+                if value and isinstance(value, str):
+                    cleaned_data[field] = value.upper()
+
+        return cleaned_data

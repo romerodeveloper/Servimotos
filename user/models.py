@@ -32,7 +32,7 @@ class User(AbstractUser):
 
 class HistoricosComisiones(models.Model):
     fecha = models.DateField(verbose_name='Fecha de Guardado')
-    comisionAcumulada = models.DecimalField(default=0.0, max_digits=9, decimal_places=1)
+    comisionAcumulada = models.DecimalField(verbose_name='Comision Acumulada en el Mes', max_digits=9, decimal_places=0, default=0)
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -40,5 +40,5 @@ class HistoricosComisiones(models.Model):
 
     def toJSON(self):
         item = model_to_dict(self)
-        item['comisionAcumulada'] = format(self.comisionAcumulada, '.2f')
+        item['comisionAcumulada'] = self.comisionAcumulada
         return item

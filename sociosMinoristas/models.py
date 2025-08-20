@@ -15,9 +15,10 @@ class SocioMinorista(Empresa):
         default=PrestamoChoices.INACTIVO,
         verbose_name="Estado del Préstamo"
     )
-    montoMaximoPendiente = models.FloatField(verbose_name='Cupo maximo de prestamo', default= 0)
-    montoPendiente = models.FloatField(verbose_name='Dinero Pendiente', default=0)
-    totalVentas = models.FloatField(verbose_name='Total de Ventas Realizadas', default=0)
+
+    montoMaximoPendiente = models.DecimalField(max_digits=12, decimal_places=0, verbose_name='Cupo maximo de prestamo', default= 0)
+    montoPendiente = models.DecimalField(max_digits=12, decimal_places=0, verbose_name='Dinero Pendiente', default=0)
+    totalVentas = models.DecimalField(max_digits=12, decimal_places=0, verbose_name='Total de Ventas Realizadas', default=0)
     porcentajeDescuento = models.IntegerField(verbose_name='Descuento Fijo en Ventas', default=10)
     compañiasAsociadas = models.ManyToManyField(Compañia,
                                                 related_name='socios_minoristas',
@@ -25,9 +26,10 @@ class SocioMinorista(Empresa):
 
     def toJSON(self):
         item = super().toJSON()
-        item['montoPendiente'] = format(self.montoPendiente, '.2f')
-        item['totalVentas'] = format(self.totalVentas, '.2f')
-        item['montoMaximoPendiente'] = format(self.totalVentas, '.2f')
+        item['razonSocial'] = self.razonSocial
+        item['montoPendiente'] = self.montoPendiente
+        item['totalVentas'] = self.totalVentas
+        item['montoMaximoPendiente'] = self.montoMaximoPendiente
         return item
 
     def __str__(self):
