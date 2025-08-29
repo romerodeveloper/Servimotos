@@ -72,7 +72,7 @@ $(document).ready(function () {
             marca:  $('select[name="marca"]').val()
         };
 
-        console.log(articulo)
+        console.log("datos articulo", articulo);
 
         // Enviar los datos mediante AJAX
         $.ajax({
@@ -128,6 +128,9 @@ function actualizarLabelDistribuidor(estadoIva) {
 }
 
 function toggleDescuentoContainer(mostrar) {
+    if (mostrar == false){
+        $('input[name="descuentoAntesDeIva"]').val(0).trigger('change');
+    }
     $(".descuento-container").toggle(mostrar);
 }
 
@@ -168,7 +171,7 @@ function calculate() {
 
 function calculateWithIVA() {
     var precioFinal = parseFloat($('input[name="precioCosto"]').val()) || 0;
-    var iva = precioFinal * 19 / 119;
+    var iva = precioFinal * 19 / 100;
     var precioCostoRealSinIva = precioFinal - iva;
     var tasa = parseFloat($('input[name="tasaGanacia"]').val()) || 0;
     var precioFinalConGanancia = precioFinal + (precioFinal * (tasa / 100));
@@ -201,7 +204,8 @@ async function procesarFormularioDeEdicion() {
         $('input[name="precioCosto"]').val(Math.round(costo + iva));
         calculateWithIVA();
     } else {
-        $('input[name="precioCosto"]').val(Math.round(costo + descuento));
+        const valorOriginal = costo / (1 - descuentoPorcentual/100);
+        $('input[name="precioCosto"]').val(Math.round(valorOriginal));
         calculate();
     }
 

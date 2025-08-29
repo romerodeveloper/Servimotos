@@ -1,4 +1,3 @@
-
 var tblProducts;
 
 var comps = {
@@ -10,23 +9,30 @@ var comps = {
         total: parseFloat(0.00),
         products: [],
         articulosEliminados: [],
-        contador: 0
+        contador: 0,
+        estadoIva: ''
     },
     calculate_invoice: function () {
         var subtotal = 0.00;
         var iva = $('input[name="iva"]').val();
+        var descuento = 0;
         $.each(this.items.products, function (pos, dict) {
-            console.log(dict)
-            var precio = dict.precioCosto;
-            var precioIva = precio + (precio*(19/100));
-            var precioCal = precioIva + (precioIva*((dict.tasaGanacia)/100));
-            dict.ivaProd = precio*(19/100)
+            var precio = parseInt(dict.precioCosto);
+            if (estadoIva == "No Calculado") {
+                descuento = parseFloat($("input[name='descDist']").val()) || 0;
+                precio = precio * (100 - descuento) / 100;
+            }
+            var precioIva = precio + (precio * 0.19);
+            var precioCal = precioIva + (precioIva * (parseFloat(dict.tasaGanacia) / 100));
+
             dict.precioFinal = precioCal
-            dict.subtotal = dict.cant * parseFloat(dict.precioCosto);
-            subtotal+=dict.subtotal;
+            dict.subtotal = dict.cant * parseFloat(precio);
+            subtotal += dict.subtotal;
         });
+
+        this.items.descuento = descuento;
         this.items.subtotal = subtotal;
-        this.items.iva = subtotal * (iva/100);
+        this.items.iva = subtotal * (iva / 100);
         this.items.total = this.items.subtotal + this.items.iva;
 
         $('input[name="subtotal"]').val(this.items.subtotal.toFixed(2));
@@ -41,9 +47,9 @@ var comps = {
 
     },
     add: function (item) {
-        if (this.items.products.length == 0){
+        if (this.items.products.length == 0) {
             this.items.products.push(item);
-        }else{
+        } else {
             repetido = false
             $.each(this.items.products, function (pos, dict) {
                 if (dict.id == item.id) {
@@ -51,14 +57,14 @@ var comps = {
                     repetido = true
                 }
             });
-            if (repetido == false){
+            if (repetido == false) {
                 this.items.products.push(item);
             }
         }
         this.list();
     },
     list: function () {
-        if (this.items.contador == 0){
+        if (this.items.contador == 0) {
             this.llenar();
         }
         this.calculate_invoice();
@@ -190,7 +196,24 @@ $(function () {
     }).on('change', function () {
         comps.calculate_invoice();
     })
-    .val(19.0);
+        .val(19.0);
+
+    $("input[name='descDist']").TouchSpin({
+        min: 0,
+        max: 100,
+        step: 0.01,
+        decimals: 2,
+        boostat: 5,
+        maxboostedstep: 10,
+        postfix: '%'
+    }).on('change', function () {
+        comps.calculate_invoice();
+        tblProducts.rows().every(function(rowIdx) {
+            $('td:eq(5)', this.node()).html('$' + comps.items.products[rowIdx].subtotal.toFixed(2));
+            $('td:eq(6)', this.node()).html('$' + comps.items.products[rowIdx].precioFinal.toFixed(2));
+        });
+    })
+        .val(0.0);
 
     // search products
 
@@ -224,7 +247,7 @@ $(function () {
                     targets: [-3],
                     class: 'text-center',
                     render: function (data, type, row) {
-                        return '<span class="badge badge-secondary">'+data+'</span>';
+                        return '<span class="badge badge-secondary">' + data + '</span>';
                     }
                 },
                 {
@@ -262,13 +285,18 @@ $(function () {
             comps.add(product);
         });
 
+    function validate_products(product) {
+        const valorOriginal = product.precioCosto / (1 - product.descuentoAntesDeIva / 100);
+        product.precioCosto = valorOriginal;
+        return product;
+    }
 
 
     // evento de cantidad
     $('#tblProducts tbody')
         .on('click', 'a[rel="remove"]', function () {
             var tr = tblProducts.cell($(this).closest('td, li')).index();
-            alert_action('Notificación', '¿Estas seguro de eliminar el producto de tu detalle?', function () {
+            alert_action('Notificación', '¿Estas seguro de eliminar el producto de tu detalle de compra?', function () {
                 comps.items.articulosEliminados.push(comps.items.products[tr.row]);
                 comps.items.products.splice(tr.row, 1);
                 comps.list();
@@ -290,10 +318,7 @@ $(function () {
             var tr = tblProducts.cell($(this).closest('td, li')).index();
             comps.items.products[tr.row].tasaGanacia = tasa;
             comps.calculate_invoice();
-            var precio = comps.items.products[tr.row].precioCosto;
-            var precioIva = precio + (precio*(19/100));
-            var precioCal = precioIva + (precioIva*((comps.items.products[tr.row].tasaGanacia)/100));
-            $('td:eq(6)', tblProducts.row(tr.row).node()).html('$' + precioCal);
+            $('td:eq(6)', tblProducts.row(tr.row).node()).html('$' + comps.items.products[tr.row].precioFinal);
         })
         .on('change', 'input[name="precioC"]', function () {
             console.clear();
@@ -302,30 +327,75 @@ $(function () {
             comps.items.products[tr.row].precioCosto = precioCosto;
             comps.calculate_invoice();
             $('td:eq(5)', tblProducts.row(tr.row).node()).html('$' + comps.items.products[tr.row].subtotal.toFixed(2));
-            $('td:eq(6)', tblProducts.row(tr.row).node()).html('$' + comps.items.products[tr.row].precioFinal );
+            $('td:eq(6)', tblProducts.row(tr.row).node()).html('$' + comps.items.products[tr.row].precioFinal);
         });
 
     $('.cont')
-        .on('click','.btnRemoveAllItems', function () {
+        .on('click', '.btnRemoveAllItems', function () {
             if (comps.items.products.length === 0) return false;
             alert_action('Notificación', '¿Estas seguro de eliminar todos los items de tu detalle?', function () {
                 $.each(comps.items.products, function (pos, dict) {
-                     comps.items.articulosEliminados.push(dict)
+                    comps.items.articulosEliminados.push(dict)
                 });
                 comps.items.products = [];
                 comps.list();
             });
-    });
+        });
 
     $('.btnClearSearch').on('click', function () {
         $('input[name="search"]').val('').focus();
     });
 
-        // event submit
+    $('select[name="distribuidor"]').on('change', function () {
+        const distribuidorId = parseInt($(this).val());
+
+        modeloDistribuidor(distribuidorId)
+            .then((respuesta) => {
+                if (respuesta == "No Calculado"){
+                    $('#descuentoDistribuidor').show();
+                    $("input[name='descDist']").trigger('change');
+                } else {
+                   $('#descuentoDistribuidor').hide();
+                }
+            })
+            .catch((error) => {
+                console.error("Error al obtener datos:", error);
+            });
+    });
+
+    function modeloDistribuidor(distribuidorId) {
+        return new Promise(function (resolve, reject) {
+            if (!distribuidorId) {
+                resolve(null);
+                return;
+            }
+
+            $.ajax({
+                url: window.location.pathname,
+                method: 'POST',
+                data: {
+                    action: 'search',
+                    distribuidor: distribuidorId,
+                },
+                success: function (response) {
+                    var respuesta = response.modeloFactura;
+                    estadoIva = respuesta
+                    resolve(respuesta);
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error en la solicitud AJAX:", error);
+                    reject(error);
+                }
+            });
+        });
+    }
+
+
+    // event submit
     $('form').on('submit', function (e) {
         e.preventDefault();
 
-        if(comps.items.products.length === 0){
+        if (comps.items.products.length === 0) {
             message_error('Debe al menos tener un item en su detalle de venta');
             return false;
         }
@@ -350,8 +420,13 @@ $(function () {
             type: 'POST',
             url: window.location.pathname,
             data: function (params) {
+                if (!$('select[name="distribuidor"]').val()) {
+                    alert("elige primero un distribuidor");
+                    return {};
+                }
                 var queryParameters = {
                     term: params.term,
+                    distribuidor: $('select[name="distribuidor"]').val(),
                     action: 'search_autocomplete'
                 }
                 return queryParameters;
@@ -367,13 +442,14 @@ $(function () {
         templateResult: formatRepo,
     }).on('select2:select', function (e) {
         var data = e.params.data;
-        if(!Number.isInteger(data.id)){
+        if (!Number.isInteger(data.id)) {
             return false;
         }
         data.cant = 1;
         data.subtotal = 0.00;
         data.cantidadIni = 0;
-        comps.add(data);
+        var dataProcess = validate_products(data);
+        comps.add(dataProcess);
         $(this).val('').trigger('change.select2');
     });
 

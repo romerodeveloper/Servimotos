@@ -1,10 +1,7 @@
-import logging
 import json
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.mail.backends import console
 from django.db import transaction
 from django.http import JsonResponse
-from django.shortcuts import render
 
 # Create your views here.
 from django.urls import reverse_lazy
@@ -12,10 +9,12 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, ListView, DeleteView, UpdateView
 from articulos.models import Articulo
-
 from compras.models import Compra, DetCompra
-
 from compras.forms import CompraForm
+from distribuidores.models import Distribuidor
+from decimal import Decimal
+import traceback
+import sys
 
 
 class CompraListView(LoginRequiredMixin, ListView):
@@ -76,11 +75,15 @@ class CompraCreateView(LoginRequiredMixin, CreateView):
                     item = i.toJSON()
                     item['value'] = i.nombre
                     data.append(item)
+            elif action == 'search':
+                data = []
+                result = self.handle_search(request)
+                return JsonResponse(result, safe=False)
             elif action == 'search_autocomplete':
                 data = []
                 term = request.POST['term'].strip()
                 data.append({'id': term, 'text': term})
-                products = Articulo.objects.filter(nombre__icontains=term, stock__gt=0)
+                products = Articulo.objects.filter(nombre__icontains=term, stock__gt=0, distribuidor=request.POST['distribuidor'])
                 for i in products[0:10]:
                     item = i.toJSON()
                     item['text'] = i.nombre
@@ -102,19 +105,48 @@ class CompraCreateView(LoginRequiredMixin, CreateView):
                         det.cantidad = int(i['cant'])
                         det.precio = float(i['precioFinal'])
                         det.subtotal = float(i['subtotal'])
-                        #insert de articulo
                         det.save()
-                        det.articulo.stock += det.cantidad
-                        det.articulo.tasaGanacia = float(i['tasaGanacia'])
-                        det.articulo.precioCosto = float(i['precioCosto'])
-                        det.articulo.precioFinal = float(i['precioFinal'])
-                        det.articulo.iva = float(i['ivaProd'])
-                        det.articulo.save()
+                        self.actualizar_articulo(i['id'], i, comps['descuento'])
             else:
                 data['error'] = 'No ha ingresado a ninguna opción'
         except Exception as e:
             data['error'] = str(e)
         return JsonResponse(data, safe=False)
+
+    def actualizar_articulo(self, articulo_id, detallesArticulo, descuento):
+        try:
+            articulo = Articulo.objects.get(id=articulo_id)
+            articulo.stock += int(detallesArticulo['cant'])
+            articulo.tasaGanacia = float(detallesArticulo['tasaGanacia'])
+            articulo.precioCosto = detallesArticulo['subtotal'] / detallesArticulo['cant']
+            articulo.precioFinal = Decimal(str(detallesArticulo['precioFinal']))
+            articulo.iva = (detallesArticulo['subtotal'] * 0.19) / detallesArticulo['cant']
+            articulo.descuentoAntesDeIva = int(descuento)
+            articulo.save()
+            return True
+
+        except Articulo.DoesNotExist:
+            print(f"Artículo con ID {articulo_id} no encontrado")
+            return False
+        except Exception as e:
+            print(f"🔹 Mensaje: {str(e)}")
+            print(f"🔹 Tipo de excepción: {type(e).__name__}")
+            print(f"\n🔍 TRACEBACK COMPLETO:")
+            traceback.print_exc()
+            return False
+
+    def normalizar_valor(self, valor):
+        if isinstance(valor, (tuple, list)):
+            valor = valor[0] if len(valor) > 0 else 0
+        return Decimal(str(valor))
+    def handle_search(self, request):
+        distribuidor_id = request.POST.get('distribuidor')
+        modelo_factura = self.get_distribuidor_modelo_factura(distribuidor_id)
+        return {'modeloFactura': modelo_factura}
+
+    def get_distribuidor_modelo_factura(self, distribuidor_id):
+        distribuidor = Distribuidor.objects.filter(id=distribuidor_id).first()
+        return distribuidor.modeloFactura
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
